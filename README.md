@@ -1,9 +1,9 @@
-# @seansleblanc/pink-trombone
+# @asmatzaile/pink-trombone
 
-headless port of [Neil Thapen's Pink Trombone](https://dood.al/pinktrombone/)
+headless polyphonic port of [Neil Thapen's Pink Trombone](https://dood.al/pinktrombone/)
 
 ```sh
-npm i @seansleblanc/pink-trombone
+npm i @asmatzaile/pink-trombone
 ```
 
 ```js
