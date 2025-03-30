@@ -7,13 +7,12 @@ npm i @asmatzaile/pink-trombone
 ```
 
 ```js
-import {
-	Glottis,
-	Tract,
-} from './pink-trombone';
+import { Glottis, Tract } from '@asmatzaile/pink-trombone';
 
 Glottis.isTouched = true;
 ```
+
+Check [demo](/demo/) to see how it could be done.
 
 ## notes
 

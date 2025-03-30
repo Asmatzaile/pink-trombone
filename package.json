@@ -1,20 +1,11 @@
 {
-  "name": "@asmatzaile/pink-trombone",
-  "version": "1.0.0",
-  "description": "headless polyphonic port of Neil Thapen's Pink Trombone",
-  "main": "index.js",
-  "scripts": {},
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/asmatzaile/pink-trombone"
+  "name": "pink-trombone-monorepo",
+  "scripts": {
+    "dev": "npm run dev -w demo"
   },
-  "author": "Gorka Egino Arroyo <gorkainventor@gmail.com>",
-  "contributors": [
-    "Sean S. LeBlanc <sean.s.leblanc@gmail.com>"
-  ],
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/asmatzaile/pink-trombone/issues"
-  },
-  "homepage": "https://github.com/asmatzaile/pink-trombone#readme"
+  "private": true,
+  "workspaces": [
+    "pink-trombone",
+    "demo"
+  ]
 }
