@@ -56,37 +56,16 @@ function moveTowards(current, target, amountUp, amountDown) {
 	else return Math.max(current - amountDown, target);
 }
 
-var sampleRate;
-var alwaysVoice = false;
-var autoWobble = false;
+let sampleRate;
 
 export var AudioSystem = {
 	blockLength: 512,
-	blockTime: 1,
-	started: false,
-	soundOn: false,
 
-	init: function () {
-		window.AudioContext = window.AudioContext || window.webkitAudioContext;
-		this.audioContext = new window.AudioContext();
+	init: function (audioContext) {
+		this.audioContext = audioContext;
 		sampleRate = this.audioContext.sampleRate;
-
 		this.blockTime = this.blockLength / sampleRate;
 
-		var unmute = () => {
-			if (!this.started) {
-				this.started = true;
-				this.startSound();
-				document.removeEventListener('pointerup', unmute);
-				document.removeEventListener('keydown', unmute);
-			}
-		};
-
-		document.addEventListener('pointerup', unmute);
-		document.addEventListener('keydown', unmute);
-	},
-
-	startSound: function () {
 		//scriptProcessor may need a dummy input channel on iOS
 		this.scriptProcessor = this.audioContext.createScriptProcessor(this.blockLength, 2, 1);
 		this.scriptProcessor.connect(this.audioContext.destination);
@@ -109,6 +88,9 @@ export var AudioSystem = {
 		fricativeFilter.connect(this.scriptProcessor);
 
 		whiteNoise.start(0);
+
+		Glottis.init();
+		Tract.init();
 	},
 
 	createWhiteNoiseNode: function (frameCount) {
@@ -173,6 +155,9 @@ export var Glottis = {
 	loudness: 1,
 	isTouched: false,
 
+	alwaysVoice: false,
+	autoWobble: false,
+
 	init: function () {
 		this.setupWaveform(0);
 	},
@@ -203,7 +188,7 @@ export var Glottis = {
 		vibrato += this.vibratoAmount * Math.sin(2 * Math.PI * this.totalTime * this.vibratoFrequency);
 		vibrato += 0.02 * noise.simplex1(this.totalTime * 4.07);
 		vibrato += 0.04 * noise.simplex1(this.totalTime * 2.15);
-		if (autoWobble) {
+		if (this.autoWobble) {
 			vibrato += 0.2 * noise.simplex1(this.totalTime * 0.98);
 			vibrato += 0.4 * noise.simplex1(this.totalTime * 0.5);
 		}
@@ -216,9 +201,9 @@ export var Glottis = {
 		this.oldTenseness = this.newTenseness;
 		this.newTenseness = this.UITenseness +
 			0.1 * noise.simplex1(this.totalTime * 0.46) + 0.05 * noise.simplex1(this.totalTime * 0.36);
-		if (!this.isTouched && alwaysVoice) this.newTenseness += (3 - this.UITenseness) * (1 - this.intensity);
+		if (!this.isTouched && this.alwaysVoice) this.newTenseness += (3 - this.UITenseness) * (1 - this.intensity);
 
-		if (this.isTouched || alwaysVoice) this.intensity += 0.13;
+		if (this.isTouched || this.alwaysVoice) this.intensity += 0.13;
 		else this.intensity -= 0.05;
 		this.intensity = clamp(this.intensity, 0, 1);
 	},
@@ -513,7 +498,3 @@ export var Tract = {
 		}
 	},
 };
-
-AudioSystem.init();
-Glottis.init();
-Tract.init();

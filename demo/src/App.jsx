@@ -1,7 +1,11 @@
 import { useState } from 'react';
-import { Glottis } from '@asmatzaile/pink-trombone';
+import { AudioSystem, Glottis } from '@asmatzaile/pink-trombone';
 
-Glottis.isTouched = true;
+document.addEventListener("pointerdown", () => {
+  const audioContext = new window.AudioContext();
+  AudioSystem.init(audioContext);
+  Glottis.isTouched = true;
+}, { once: true });
 
 function App() {
   const [started, setStarted] = useState(false);
