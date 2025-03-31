@@ -56,27 +56,22 @@ function moveTowards(current, target, amountUp, amountDown) {
 	else return Math.max(current - amountDown, target);
 }
 
-let sampleRate;
-
 export class PinkTrombone {
 	constructor(audioContext) {
-		this.glottis = Glottis;
-		this.tract = Tract;
-		this.audioSystem = AudioSystem;
-		this.audioSystem.init(audioContext, this.glottis, this.tract);
-		this.glottis.init();
-		this.tract.init();
+		this.glottis = new Glottis();
+		this.tract = new Tract();
+		this.audioSystem = new AudioSystem(audioContext, this.glottis, this.tract);
 	}
 
 }
 
-const AudioSystem = {
-	blockLength: 512,
+class AudioSystem {
+	blockLength = 512;
 
-	init: function (audioContext, glottis, tract) {
+	constructor(audioContext, glottis, tract) {
 		this.audioContext = audioContext;
-		sampleRate = this.audioContext.sampleRate;
-		this.blockTime = this.blockLength / sampleRate;
+		this.sampleRate = this.audioContext.sampleRate;
+		this.blockTime = this.blockLength / this.sampleRate;
 
 		this.glottis = glottis;
 		this.tract = tract;
@@ -86,7 +81,7 @@ const AudioSystem = {
 		this.scriptProcessor.connect(this.audioContext.destination);
 		this.scriptProcessor.onaudioprocess = (event) => this.doScriptProcessor(event);
 
-		var whiteNoise = this.createWhiteNoiseNode(2 * sampleRate); // 2 seconds of noise
+		var whiteNoise = this.createWhiteNoiseNode(2 * this.sampleRate); // 2 seconds of noise
 
 		var aspirateFilter = this.audioContext.createBiquadFilter();
 		aspirateFilter.type = "bandpass";
@@ -103,10 +98,10 @@ const AudioSystem = {
 		fricativeFilter.connect(this.scriptProcessor);
 
 		whiteNoise.start(0);
-	},
+	}
 
-	createWhiteNoiseNode: function (frameCount) {
-		var myArrayBuffer = this.audioContext.createBuffer(1, frameCount, sampleRate);
+	createWhiteNoiseNode(frameCount) {
+		var myArrayBuffer = this.audioContext.createBuffer(1, frameCount, this.sampleRate);
 
 		var nowBuffering = myArrayBuffer.getChannelData(0);
 		for (var i = 0; i < frameCount; i++) {
@@ -118,63 +113,64 @@ const AudioSystem = {
 		source.loop = true;
 
 		return source;
-	},
+	}
 
 
-	doScriptProcessor: function (event) {
+	doScriptProcessor(event) {
 		var inputArray1 = event.inputBuffer.getChannelData(0);
 		var inputArray2 = event.inputBuffer.getChannelData(1);
 		var outArray = event.outputBuffer.getChannelData(0);
+		const sampleRate = this.sampleRate;
 		for (var j = 0, N = outArray.length; j < N; j++) {
 			var lambda1 = j / N;
 			var lambda2 = (j + 0.5) / N;
-			var glottalOutput = this.glottis.runStep(lambda1, inputArray1[j]);
+			var glottalOutput = this.glottis.runStep(lambda1, inputArray1[j], sampleRate);
 
 			var vocalOutput = 0;
 			//Tract runs at twice the sample rate 
-			this.tract.runStep(glottalOutput, inputArray2[j], lambda1);
+			this.tract.runStep(glottalOutput, inputArray2[j], lambda1, sampleRate);
 			vocalOutput += this.tract.lipOutput + this.tract.noseOutput;
-			this.tract.runStep(glottalOutput, inputArray2[j], lambda2);
+			this.tract.runStep(glottalOutput, inputArray2[j], lambda2, sampleRate);
 			vocalOutput += this.tract.lipOutput + this.tract.noseOutput;
 			outArray[j] = vocalOutput * 0.125;
 		}
 		this.glottis.finishBlock();
-		this.tract.finishBlock();
-	},
+		this.tract.finishBlock(this.blockTime);
+	}
 
-	mute: function () {
+	mute() {
 		this.scriptProcessor.disconnect();
-	},
+	}
 
-	unmute: function () {
+	unmute() {
 		this.scriptProcessor.connect(this.audioContext.destination);
 	}
 }
 
-const Glottis = {
-	timeInWaveform: 0,
-	oldFrequency: 140,
-	newFrequency: 140,
-	UIFrequency: 140,
-	smoothFrequency: 140,
-	oldTenseness: 0.6,
-	newTenseness: 0.6,
-	UITenseness: 0.6,
-	totalTime: 0,
-	vibratoAmount: 0.005,
-	vibratoFrequency: 6,
-	intensity: 0,
-	loudness: 1,
-	isTouched: false,
+class Glottis {
+	timeInWaveform = 0;
+	oldFrequency = 140;
+	newFrequency = 140;
+	UIFrequency = 140;
+	smoothFrequency = 140;
+	oldTenseness = 0.6;
+	newTenseness = 0.6;
+	UITenseness = 0.6;
+	totalTime = 0;
+	vibratoAmount = 0.005;
+	vibratoFrequency = 6;
+	intensity = 0;
+	loudness = 1;
+	isTouched = false;
 
-	alwaysVoice: false,
-	autoWobble: false,
+	alwaysVoice = false;
+	autoWobble = false;
 
-	init: function () {
+	constructor() {
 		this.setupWaveform(0);
-	},
+	}
 
-	runStep: function (lambda, noiseSource) {
+	runStep(lambda, noiseSource, sampleRate) {
 		var timeStep = 1.0 / sampleRate;
 		this.timeInWaveform += timeStep;
 		this.totalTime += timeStep;
@@ -187,15 +183,15 @@ const Glottis = {
 		aspiration *= 0.2 + 0.02 * noise.simplex1(this.totalTime * 1.99);
 		out += aspiration;
 		return out;
-	},
+	}
 
-	getNoiseModulator: function () {
+	getNoiseModulator() {
 		var voiced = 0.1 + 0.2 * Math.max(0, Math.sin(Math.PI * 2 * this.timeInWaveform / this.waveformLength));
 		//return 0.3;
 		return this.UITenseness * this.intensity * voiced + (1 - this.UITenseness * this.intensity) * 0.3;
-	},
+	}
 
-	finishBlock: function () {
+	finishBlock() {
 		var vibrato = 0;
 		vibrato += this.vibratoAmount * Math.sin(2 * Math.PI * this.totalTime * this.vibratoFrequency);
 		vibrato += 0.02 * noise.simplex1(this.totalTime * 4.07);
@@ -218,9 +214,9 @@ const Glottis = {
 		if (this.isTouched || this.alwaysVoice) this.intensity += 0.13;
 		else this.intensity -= 0.05;
 		this.intensity = clamp(this.intensity, 0, 1);
-	},
+	}
 
-	setupWaveform: function (lambda) {
+	setupWaveform(lambda) {
 		this.frequency = this.oldFrequency * (1 - lambda) + this.newFrequency * lambda;
 		var tenseness = this.oldTenseness * (1 - lambda) + this.newTenseness * lambda;
 		this.Rd = 3 * (1 - tenseness);
@@ -270,9 +266,9 @@ const Glottis = {
 		this.Delta = Delta;
 		this.Te = Te;
 		this.omega = omega;
-	},
+	}
 
-	normalizedLFWaveform: function (t) {
+	normalizedLFWaveform(t) {
 		var output;
 		if (t > this.Te) output = (-Math.exp(-this.epsilon * (t - this.Te)) + this.shift) / this.Delta;
 		else output = this.E0 * Math.exp(this.alpha * t) * Math.sin(this.omega * t);
@@ -282,33 +278,33 @@ const Glottis = {
 }
 
 
-const Tract = {
-	n: 44,
-	bladeStart: 10,
-	tipStart: 32,
-	lipStart: 39,
-	R: [], //component going right
-	L: [], //component going left
-	reflection: [],
-	junctionOutputR: [],
-	junctionOutputL: [],
-	maxAmplitude: [],
-	diameter: [],
-	restDiameter: [],
-	targetDiameter: [],
-	newDiameter: [],
-	A: [],
-	glottalReflection: 0.75,
-	lipReflection: -0.85,
-	lastObstruction: -1,
-	fade: 1.0, //0.9999,
-	movementSpeed: 15, //cm per second
-	transients: [],
-	lipOutput: 0,
-	noseOutput: 0,
-	velumTarget: 0.01,
+class Tract {
+	n = 44;
+	bladeStart = 10;
+	tipStart = 32;
+	lipStart = 39;
+	R = []; //component going right
+	L = []; //component going left
+	reflection = [];
+	junctionOutputR = [];
+	junctionOutputL = [];
+	maxAmplitude = [];
+	diameter = [];
+	restDiameter = [];
+	targetDiameter = [];
+	newDiameter = [];
+	A = [];
+	glottalReflection = 0.75;
+	lipReflection = -0.85;
+	lastObstruction = -1;
+	fade = 1.0; //0.9999,
+	movementSpeed = 15; //cm per second
+	transients = [];
+	lipOutput = 0;
+	noseOutput = 0;
+	velumTarget = 0.01;
 
-	init: function () {
+	constructor() {
 		this.bladeStart = Math.floor(this.bladeStart * this.n / 44);
 		this.tipStart = Math.floor(this.tipStart * this.n / 44);
 		this.lipStart = Math.floor(this.lipStart * this.n / 44);
@@ -354,9 +350,9 @@ const Tract = {
 		this.calculateReflections();
 		this.calculateNoseReflections();
 		this.noseDiameter[0] = this.velumTarget;
-	},
+	}
 
-	reshapeTract: function (deltaTime) {
+	reshapeTract(deltaTime) {
 		var amount = deltaTime * this.movementSpeed;;
 		var newLastObstruction = -1;
 		for (var i = 0; i < this.n; i++) {
@@ -378,9 +374,9 @@ const Tract = {
 		this.noseDiameter[0] = moveTowards(this.noseDiameter[0], this.velumTarget,
 			amount * 0.25, amount * 0.1);
 		this.noseA[0] = this.noseDiameter[0] * this.noseDiameter[0];
-	},
+	}
 
-	calculateReflections: function () {
+	calculateReflections() {
 		for (var i = 0; i < this.n; i++) {
 			this.A[i] = this.diameter[i] * this.diameter[i]; //ignoring PI etc.
 		}
@@ -399,22 +395,22 @@ const Tract = {
 		this.newReflectionLeft = (2 * this.A[this.noseStart] - sum) / sum;
 		this.newReflectionRight = (2 * this.A[this.noseStart + 1] - sum) / sum;
 		this.newReflectionNose = (2 * this.noseA[0] - sum) / sum;
-	},
+	}
 
-	calculateNoseReflections: function () {
+	calculateNoseReflections() {
 		for (var i = 0; i < this.noseLength; i++) {
 			this.noseA[i] = this.noseDiameter[i] * this.noseDiameter[i];
 		}
 		for (var i = 1; i < this.noseLength; i++) {
 			this.noseReflection[i] = (this.noseA[i - 1] - this.noseA[i]) / (this.noseA[i - 1] + this.noseA[i]);
 		}
-	},
+	}
 
-	runStep: function (glottalOutput, turbulenceNoise, lambda) {
+	runStep(glottalOutput, turbulenceNoise, lambda, sampleRate) {
 		var updateAmplitudes = (Math.random() < 0.1);
 
 		//mouth
-		this.processTransients();
+		this.processTransients(sampleRate);
 
 		//this.glottalReflection = -0.8 + 1.6 * Glottis.newTenseness;
 		this.junctionOutputR[0] = this.L[0] * this.glottalReflection + glottalOutput;
@@ -477,14 +473,14 @@ const Tract = {
 
 		this.noseOutput = this.noseR[this.noseLength - 1];
 
-	},
+	}
 
-	finishBlock: function () {
-		this.reshapeTract(AudioSystem.blockTime);
+	finishBlock(blockTime) {
+		this.reshapeTract(blockTime);
 		this.calculateReflections();
-	},
+	}
 
-	addTransient: function (position) {
+	addTransient(position) {
 		var trans = {}
 		trans.position = position;
 		trans.timeAlive = 0;
@@ -492,9 +488,9 @@ const Tract = {
 		trans.strength = 0.3;
 		trans.exponent = 200;
 		this.transients.push(trans);
-	},
+	}
 
-	processTransients: function () {
+	processTransients(sampleRate) {
 		for (var i = 0; i < this.transients.length; i++) {
 			var trans = this.transients[i];
 			var amplitude = trans.strength * Math.pow(2, -trans.exponent * trans.timeAlive);
@@ -508,5 +504,5 @@ const Tract = {
 				this.transients.splice(i, 1);
 			}
 		}
-	},
-};
+	}
+}
