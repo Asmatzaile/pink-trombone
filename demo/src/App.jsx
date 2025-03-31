@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { AudioSystem, Glottis } from '@asmatzaile/pink-trombone';
+import { PinkTrombone } from '@asmatzaile/pink-trombone';
 
 document.addEventListener("pointerdown", () => {
   const audioContext = new window.AudioContext();
-  AudioSystem.init(audioContext);
-  Glottis.isTouched = true;
+  const trombone = new PinkTrombone(audioContext);
+  trombone.glottis.isTouched = true;
 }, { once: true });
 
 function App() {

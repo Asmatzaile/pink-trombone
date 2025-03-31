@@ -7,13 +7,13 @@ npm i @asmatzaile/pink-trombone
 ```
 
 ```js
-import { AudioSystem, Glottis } from '@asmatzaile/pink-trombone';
+import { PinkTrombone } from '@asmatzaile/pink-trombone';
 
 document.addEventListener("pointerdown", () => {
   const audioContext = new window.AudioContext();
-  AudioSystem.init(audioContext);
-  Glottis.isTouched = true;
-}, { once: true });
+  const trombone = new PinkTrombone(audioContext);
+  trombone.glottis.isTouched = true;
+}, { once: true })
 ```
 
 Check [demo](/demo/) to see how it could be done.
@@ -26,11 +26,10 @@ Check [demo](/demo/) to see how it could be done.
 - the interfaces are currently singletons
 
 ## api
-
-- `Glottis.isTouched`: whether it's speaking
-  - just `true` or `false`
-- `Glottis.UIFrequency`: pitch
-  - usually want something in the triple digits
+  - `PinkTrombone.glottis`
+    - `.isTouched`: whether it's producing sound
+      - just `true` or `false`
+    - `Glottis.UIFrequency`: frequency in Hertz
   - <50 is barely audible
   - \>2000 is a screech and has audible artifacting
 - `Glottis.UITenseness`: breathiness

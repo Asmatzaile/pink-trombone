@@ -58,18 +58,33 @@ function moveTowards(current, target, amountUp, amountDown) {
 
 let sampleRate;
 
-export var AudioSystem = {
+export class PinkTrombone {
+	constructor(audioContext) {
+		this.glottis = Glottis;
+		this.tract = Tract;
+		this.audioSystem = AudioSystem;
+		this.audioSystem.init(audioContext, this.glottis, this.tract);
+		this.glottis.init();
+		this.tract.init();
+	}
+
+}
+
+const AudioSystem = {
 	blockLength: 512,
 
-	init: function (audioContext) {
+	init: function (audioContext, glottis, tract) {
 		this.audioContext = audioContext;
 		sampleRate = this.audioContext.sampleRate;
 		this.blockTime = this.blockLength / sampleRate;
 
+		this.glottis = glottis;
+		this.tract = tract;
+
 		//scriptProcessor may need a dummy input channel on iOS
 		this.scriptProcessor = this.audioContext.createScriptProcessor(this.blockLength, 2, 1);
 		this.scriptProcessor.connect(this.audioContext.destination);
-		this.scriptProcessor.onaudioprocess = AudioSystem.doScriptProcessor;
+		this.scriptProcessor.onaudioprocess = (event) => this.doScriptProcessor(event);
 
 		var whiteNoise = this.createWhiteNoiseNode(2 * sampleRate); // 2 seconds of noise
 
@@ -88,9 +103,6 @@ export var AudioSystem = {
 		fricativeFilter.connect(this.scriptProcessor);
 
 		whiteNoise.start(0);
-
-		Glottis.init();
-		Tract.init();
 	},
 
 	createWhiteNoiseNode: function (frameCount) {
@@ -116,18 +128,18 @@ export var AudioSystem = {
 		for (var j = 0, N = outArray.length; j < N; j++) {
 			var lambda1 = j / N;
 			var lambda2 = (j + 0.5) / N;
-			var glottalOutput = Glottis.runStep(lambda1, inputArray1[j]);
+			var glottalOutput = this.glottis.runStep(lambda1, inputArray1[j]);
 
 			var vocalOutput = 0;
 			//Tract runs at twice the sample rate 
-			Tract.runStep(glottalOutput, inputArray2[j], lambda1);
-			vocalOutput += Tract.lipOutput + Tract.noseOutput;
-			Tract.runStep(glottalOutput, inputArray2[j], lambda2);
-			vocalOutput += Tract.lipOutput + Tract.noseOutput;
+			this.tract.runStep(glottalOutput, inputArray2[j], lambda1);
+			vocalOutput += this.tract.lipOutput + this.tract.noseOutput;
+			this.tract.runStep(glottalOutput, inputArray2[j], lambda2);
+			vocalOutput += this.tract.lipOutput + this.tract.noseOutput;
 			outArray[j] = vocalOutput * 0.125;
 		}
-		Glottis.finishBlock();
-		Tract.finishBlock();
+		this.glottis.finishBlock();
+		this.tract.finishBlock();
 	},
 
 	mute: function () {
@@ -139,7 +151,7 @@ export var AudioSystem = {
 	}
 }
 
-export var Glottis = {
+const Glottis = {
 	timeInWaveform: 0,
 	oldFrequency: 140,
 	newFrequency: 140,
@@ -270,7 +282,7 @@ export var Glottis = {
 }
 
 
-export var Tract = {
+const Tract = {
 	n: 44,
 	bladeStart: 10,
 	tipStart: 32,
