@@ -43,7 +43,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
 IN THE SOFTWARE.
 */
-import noise from './noise';
+import { Noise } from './noise';
 
 function clamp(number, min, max) {
 	if (number < min) return min;
@@ -168,6 +168,7 @@ class Glottis {
 
 	constructor() {
 		this.setupWaveform(0);
+		this.noise = new Noise();
 	}
 
 	runStep(lambda, noiseSource, sampleRate) {
@@ -180,7 +181,7 @@ class Glottis {
 		}
 		var out = this.normalizedLFWaveform(this.timeInWaveform / this.waveformLength);
 		var aspiration = this.intensity * (1 - Math.sqrt(this.UITenseness)) * this.getNoiseModulator() * noiseSource;
-		aspiration *= 0.2 + 0.02 * noise.simplex1(this.totalTime * 1.99);
+		aspiration *= 0.2 + 0.02 * this.noise.simplex1(this.totalTime * 1.99);
 		out += aspiration;
 		return out;
 	}
@@ -194,11 +195,11 @@ class Glottis {
 	finishBlock() {
 		var vibrato = 0;
 		vibrato += this.vibratoAmount * Math.sin(2 * Math.PI * this.totalTime * this.vibratoFrequency);
-		vibrato += 0.02 * noise.simplex1(this.totalTime * 4.07);
-		vibrato += 0.04 * noise.simplex1(this.totalTime * 2.15);
+		vibrato += 0.02 * this.noise.simplex1(this.totalTime * 4.07);
+		vibrato += 0.04 * this.noise.simplex1(this.totalTime * 2.15);
 		if (this.autoWobble) {
-			vibrato += 0.2 * noise.simplex1(this.totalTime * 0.98);
-			vibrato += 0.4 * noise.simplex1(this.totalTime * 0.5);
+			vibrato += 0.2 * this.noise.simplex1(this.totalTime * 0.98);
+			vibrato += 0.4 * this.noise.simplex1(this.totalTime * 0.5);
 		}
 		if (this.UIFrequency > this.smoothFrequency)
 			this.smoothFrequency = Math.min(this.smoothFrequency * 1.1, this.UIFrequency);
@@ -208,7 +209,7 @@ class Glottis {
 		this.newFrequency = this.smoothFrequency * (1 + vibrato);
 		this.oldTenseness = this.newTenseness;
 		this.newTenseness = this.UITenseness +
-			0.1 * noise.simplex1(this.totalTime * 0.46) + 0.05 * noise.simplex1(this.totalTime * 0.36);
+			0.1 * this.noise.simplex1(this.totalTime * 0.46) + 0.05 * this.noise.simplex1(this.totalTime * 0.36);
 		if (!this.isTouched && this.alwaysVoice) this.newTenseness += (3 - this.UITenseness) * (1 - this.intensity);
 
 		if (this.isTouched || this.alwaysVoice) this.intensity += 0.13;
