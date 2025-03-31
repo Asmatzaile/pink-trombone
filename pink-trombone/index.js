@@ -63,6 +63,13 @@ export class PinkTrombone {
 		this.audioSystem = new AudioSystem(audioContext, this.glottis, this.tract);
 	}
 
+	dispose() {
+		this.audioSystem.dispose();
+		this.audioSystem = null;
+		this.glottis = null;
+		this.tract = null;
+	}
+
 }
 
 class AudioSystem {
@@ -82,6 +89,7 @@ class AudioSystem {
 		this.scriptProcessor.onaudioprocess = (event) => this.doScriptProcessor(event);
 
 		var whiteNoise = this.createWhiteNoiseNode(2 * this.sampleRate); // 2 seconds of noise
+		this.whiteNoise = whiteNoise;
 
 		var aspirateFilter = this.audioContext.createBiquadFilter();
 		aspirateFilter.type = "bandpass";
@@ -96,6 +104,8 @@ class AudioSystem {
 		fricativeFilter.Q.value = 0.5;
 		whiteNoise.connect(fricativeFilter);
 		fricativeFilter.connect(this.scriptProcessor);
+
+		this.filters = [aspirateFilter, fricativeFilter];
 
 		whiteNoise.start(0);
 	}
@@ -144,6 +154,23 @@ class AudioSystem {
 
 	unmute() {
 		this.scriptProcessor.connect(this.audioContext.destination);
+	}
+
+	dispose() {
+		this.scriptProcessor.disconnect();
+		this.scriptProcessor.onaudioprocess = null;
+		this.scriptProcessor = null;
+
+		this.whiteNoise.stop();
+		this.whiteNoise.disconnect();
+		this.whiteNoise.buffer = null;
+		this.whiteNoise = null;
+
+		this.filters.forEach(filter => filter.disconnect());
+		this.filters = null;
+
+		this.glottis = null;
+		this.tract = null;
 	}
 }
 

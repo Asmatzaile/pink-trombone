@@ -25,6 +25,8 @@ Check [demo](/demo/) to see how it could be done.
   - `autoWobble` is relatively simple to reproduce: it's just noise applied to the vibrato
 
 ## api
+  - `PinkTrombone`
+    - `.dispose()`: disconnect it from audio processing.
   - `PinkTrombone.glottis`
     - `.isTouched`: whether it's producing sound
       - just `true` or `false`
