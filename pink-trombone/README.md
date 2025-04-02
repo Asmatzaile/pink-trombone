@@ -12,17 +12,12 @@ import { PinkTrombone } from '@asmatzaile/pink-trombone';
 document.addEventListener("pointerdown", () => {
   const audioContext = new window.AudioContext();
   const trombone = new PinkTrombone(audioContext);
-  trombone.glottis.isTouched = true;
+  trombone.isVoiced = true;
 }, { once: true })
 ```
 
 Check [demo](/demo/) to see how it could be done.
 
-## notes
-
-- `alwaysVoice` and `autoWobble` from the original are disabled, and not exposed
-  - `alwaysVoice` is not needed, since you can set `Glottis.isTouched = true` and never turn it off to get the same behaviour
-  - `autoWobble` is relatively simple to reproduce: it's just noise applied to the vibrato
 
 ## Api
 
@@ -34,6 +29,15 @@ new PinkTrombone();
 ```
 
 ### Accessors
+  - <code>isVoiced: <em>boolean</em></code>
+    - whether the vocal cords are vibrating
+  - <code>tenseness: <em>number</em></code>
+    - Kind of the opposite of 'breathiness'.
+    - Usual values: around `0.6`
+    - `0` is very breathy
+    - `1` is sharp and robotic
+    - more than `1` does both
+    - less than `0` breaks it
   - <code>frequency: <em>number</em></code>
     - frequency in Hertz
     - Usual values: between `90` and `330`
@@ -42,33 +46,18 @@ new PinkTrombone();
   - <code>pitch: <em>number</em></code>
     - pitch in midi. Equivalent to `frequency`
     - Usual values: between `41` (F2) and `64` (E4)
-
+  - <code>vibrato: <em>number</em></code>
+    - regular variation in pitch
+    - Usual values: between `0` and `0.005`.
+    - `0` is none.
+    - `1` is "full" range
+    - values close to `1` and greater start to break it
+    - negative is the same as positive
 
 ### Methods
   - `dispose`: disconnect it from audio processing.
 
-
 ## Deprecated api
-- `new PinkTrombone`: create a new one
-- `PinkTrombone.glottis`
-  - `.isTouched`: whether it's producing sound
-    - just `true` or `false`
-  - `.UIFrequency`: frequency in Hertz
-    - Usual values: 90-330
-    - <50 is barely audible
-    - \>2000 is a screech and has audible artifacting
-  - `.UITenseness`: breathiness
-    - Usual value: around 0.5
-    - 0 is more breathy
-    - 1 is sharp and a bit robotic
-    - \>1 kinda does both
-    - negative breaks it
-  - `.vibratoAmount`:
-      - Usual values: 0-0.1
-      - 0 is none
-      - 1 is "full" range
-      - \>1 is broken cheeping
-      - negative is the same
 - `PinkTrombone.tract`
   - `.velumTarget`: back roof of the mouth; controls how nasal things sound
     - 0 is closed

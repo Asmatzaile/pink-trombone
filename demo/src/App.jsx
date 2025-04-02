@@ -9,7 +9,7 @@ function App() {
 
   const createTrombone = () => {
     const trombone = new PinkTrombone(audioContextRef.current);
-    trombone.glottis.isTouched = true;
+    trombone.isVoiced = true;
     trombone.pitch = Math.random() * (64-41) + 41; // between F2 and E4
     setTrombones(p => {
       const n = new Set(p);

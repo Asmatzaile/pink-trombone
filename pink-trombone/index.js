@@ -55,23 +55,34 @@ function moveTowards(current, target, amountUp, amountDown) {
 }
 
 export class PinkTrombone {
+	#glottis
+	#audioSystem
 	constructor(audioContext) {
-		this.glottis = new Glottis();
+		this.#glottis = new Glottis();
 		this.tract = new Tract();
-		this.audioSystem = new AudioSystem(audioContext, this.glottis, this.tract);
+		this.#audioSystem = new AudioSystem(audioContext, this.#glottis, this.tract);
 	}
 
 	dispose() {
-		this.audioSystem.dispose();
-		this.audioSystem = null;
-		this.glottis = null;
+		this.#audioSystem.dispose();
+		this.#audioSystem = null;
+		this.#glottis = null;
 		this.tract = null;
 	}
+	
+	get isVoiced() { return this.#glottis.isTouched }
+	set isVoiced(v) { this.#glottis.isTouched = v }
 
-	get frequency() { return this.glottis.UIFrequency }
-	set frequency(v) { this.glottis.UIFrequency = v }
+	get tenseness() { return this.#glottis.UITenseness }
+	set tenseness(v) { this.#glottis.UITenseness = v }
+
+	get frequency() { return this.#glottis.UIFrequency }
+	set frequency(v) { this.#glottis.UIFrequency = v }
 	get pitch() { return hertzToMidi(this.frequency) }
 	set pitch(v) { this.frequency = midiToHertz(v) }
+
+	get vibrato() { return this.#glottis.vibratoAmount }
+	set vibrato(v) { this.#glottis.vibratoAmount = v }
 
 }
 
