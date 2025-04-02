@@ -1,9 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { PinkTrombone } from '@asmatzaile/pink-trombone';
 
-const ftom = f => 12 * Math.log2(f/440)+69;
-const mtof = m => 440 * Math.pow(2, (m-69)/12);
-
 function App() {
   const [started, setStarted] = useState(false);
   const audioContextRef = useRef();
@@ -13,12 +10,13 @@ function App() {
   const createTrombone = () => {
     const trombone = new PinkTrombone(audioContextRef.current);
     trombone.glottis.isTouched = true;
-    trombone.glottis.UIFrequency = mtof(Math.random() * (ftom(330)-ftom(90)) + ftom(90));
+    trombone.pitch = Math.random() * (64-41) + 41; // between F2 and E4
     setTrombones(p => {
       const n = new Set(p);
       n.add(trombone);
       return n;
     });
+    return trombone;
   }
 
   const deleteTrombone = (trombone) => {
@@ -35,7 +33,8 @@ function App() {
     document.addEventListener("pointerdown", () => {
       audioContextRef.current = new window.AudioContext();
       setStarted(true);
-      createTrombone();
+      const trombone = createTrombone();
+      window.trombone = trombone; // for debugging
     }, { once: true, signal: controller. signal });
 
     return () => controller.abort();

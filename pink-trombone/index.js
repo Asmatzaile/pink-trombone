@@ -45,11 +45,9 @@ IN THE SOFTWARE.
 */
 import { Noise } from './noise';
 
-function clamp(number, min, max) {
-	if (number < min) return min;
-	else if (number > max) return max;
-	else return number;
-}
+const clamp = (number, min, max) => Math.max(min, Math.min(max, number));
+const hertzToMidi = hertz => 12 * Math.log2(hertz / 440) + 69;
+const midiToHertz = midi => 440 * Math.pow(2, (midi - 69) / 12);
 
 function moveTowards(current, target, amountUp, amountDown) {
 	if (current < target) return Math.min(current + amountUp, target);
@@ -69,6 +67,11 @@ export class PinkTrombone {
 		this.glottis = null;
 		this.tract = null;
 	}
+
+	get frequency() { return this.glottis.UIFrequency }
+	set frequency(v) { this.glottis.UIFrequency = v }
+	get pitch() { return hertzToMidi(this.frequency) }
+	set pitch(v) { this.frequency = midiToHertz(v) }
 
 }
 
