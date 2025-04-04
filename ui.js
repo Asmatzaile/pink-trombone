@@ -25,6 +25,9 @@ export const UI =
     inInstructionsScreen : false,
     instructionsLine : 0,
     debugText : "",
+
+    showControls: false,
+    showAnatomyLabels: false,
     
     init : function(audioSystem, glottis, tract)
     {
@@ -49,22 +52,19 @@ export const UI =
         const observer = new ResizeObserver(entries => onResize(entries[0].borderBoxSize[0].inlineSize));
         observer.observe(tractCanvas);
 
-        document.addEventListener('touchstart', (function(event) {event.preventDefault();}) );
+        document.addEventListener('mousedown', (e) => UI.startMouse(e));
+        document.addEventListener('mouseup', (e) => UI.endMouse(e));
+        document.addEventListener('mousemove', (e) => UI.moveMouse(e));    
         
-        document.addEventListener('mousedown', (function(event)
-            {UI.mouseDown = true; event.preventDefault(); UI.startMouse(event);}));
-        document.addEventListener('mouseup', (function(event)
-            {UI.mouseDown = false; UI.endMouse(event);}));
-        document.addEventListener('mousemove', UI.moveMouse);    
-        
-        TractUI.init(tract, glottis);
-        GlottisUI.init(glottis);
+        TractUI.init(tract, glottis, {showControls: this.showControls, showAnatomyLabels: this.showAnatomyLabels});
+        GlottisUI.init(glottis, this.showControls);
         requestAnimationFrame(redraw);
     },
     
     draw : function()
     {
-        TractUI.draw();
+        TractUI.draw({showControls: this.showControls, showAnatomyLabels: this.showAnatomyLabels });
+        if (!this.showControls) return;
         this.alwaysVoiceButton.draw(tractCtx);
         this.autoWobbleButton.draw(tractCtx);
         this.aboutButton.draw(tractCtx);
@@ -198,7 +198,8 @@ export const UI =
     
     startTouches : function(event)
     {
-        event.preventDefault();    
+        if (!this.showControls) return;
+        event.preventDefault();
         if (!this.audioSystem.started)
         {
             this.audioSystem.start();
@@ -254,6 +255,7 @@ export const UI =
     
     moveTouches : function(event)
     {
+        if (!this.showControls) return;
         var touches = event.changedTouches;
         for (var j=0; j<touches.length; j++)        
         {
@@ -291,6 +293,9 @@ export const UI =
       
     startMouse : function(event)
     {
+        if (!this.showControls) return;
+        UI.mouseDown = true;
+        event.preventDefault();
         if (!this.audioSystem.started)
         {
             this.audioSystem.start();
@@ -326,6 +331,7 @@ export const UI =
 
     moveMouse : function(event)
     {
+        if (!this.showControls) return;
         var touch = UI.mouseTouch;
         if (!touch.alive) return;
         touch.x = (event.clientX-tractCanvas.getBoundingClientRect().left)/UI.width*600;
@@ -337,6 +343,7 @@ export const UI =
     
     endMouse : function(event)
     {
+        UI.mouseDown = false;
         var touch = UI.mouseTouch;
         if (!touch.alive) return;
         touch.alive = false;
@@ -393,7 +400,7 @@ var TractUI =
     fillColour : 'pink',
     lineColour : '#C070C6',
     
-    init : function(tract, glottis)
+    init : function(tract, glottis, {showControls, showAnatomyLabels})
     {
         this.ctx = tractCtx;
         this.tract = tract;
@@ -403,7 +410,7 @@ var TractUI =
         {
             this.tract.diameter[i] = this.tract.targetDiameter[i] = this.tract.restDiameter[i];
         }
-        this.drawBackground();
+        this.drawBackground(showControls, showAnatomyLabels);
         this.tongueLowerIndexBound = this.tract.bladeStart+2;
         this.tongueUpperIndexBound = this.tract.tipStart-3;
         this.tongueIndexCentre = 0.5*(this.tongueLowerIndexBound+this.tongueUpperIndexBound);
@@ -473,14 +480,16 @@ var TractUI =
         return (this.radius-Math.sqrt(xx*xx + yy*yy))/this.scale;
     },
     
-    draw : function()
+    draw : function({showControls, showAnatomyLabels})
     {
         this.ctx.clearRect(0, 0, tractCanvas.width, tractCanvas.height);
         this.ctx.lineCap = 'round';        
         this.ctx.lineJoin = 'round';  
         
-        this.drawTongueControl();
-        this.drawPitchControl();
+        if (showControls) {
+            this.drawTongueControl();
+            this.drawPitchControl();
+        }
         
         var velum = this.tract.noseDiameter[0];
         var velumAngle = velum * 4;
@@ -529,12 +538,15 @@ var TractUI =
         this.ctx.font="20px Arial";
         this.ctx.textAlign = "center";
         this.ctx.globalAlpha = 1.0;
-        this.drawText(this.tract.n*0.10, 0.425, "throat");         
-        this.drawText(this.tract.n*0.71, -1.8, "nasal");
-        this.drawText(this.tract.n*0.71, -1.3, "cavity");
-        this.ctx.font="22px Arial";        
-        this.drawText(this.tract.n*0.6, 0.9, "oral");    
-        this.drawText(this.tract.n*0.7, 0.9, "cavity");        
+        if (showAnatomyLabels) {
+            this.drawText(this.tract.n*0.10, 0.425, "throat");         
+            this.drawText(this.tract.n*0.71, -1.8, "nasal");
+            this.drawText(this.tract.n*0.71, -1.3, "cavity");
+            this.ctx.font="22px Arial";        
+            this.drawText(this.tract.n*0.6, 0.9, "oral");    
+            this.drawText(this.tract.n*0.7, 0.9, "cavity"); 
+        }
+         
   
        
         this.drawAmplitudes(); 
@@ -579,16 +591,16 @@ var TractUI =
         this.ctx.font="20px Arial";
         this.ctx.textAlign = "center";
         this.ctx.globalAlpha = 0.7;
-        this.drawText(this.tract.n*0.95, 0.8+0.8*this.tract.diameter[this.tract.n-1], " lip"); 
+        if (showAnatomyLabels) this.drawText(this.tract.n*0.95, 0.8+0.8*this.tract.diameter[this.tract.n-1], " lip"); 
         
         this.ctx.globalAlpha=1.0;        
         this.ctx.fillStyle = "black";
         this.ctx.textAlign = "left";
         this.ctx.fillText(UI.debugText, 20, 20);
-        //this.drawPositions();
+        // this.drawPositions();
     },
     
-    drawBackground : function()
+    drawBackground : function(showControls, showAnatomyLabels)
     {
         this.ctx = backCtx;
         
@@ -598,25 +610,32 @@ var TractUI =
         this.ctx.font="20px Arial";
         this.ctx.textAlign = "center";
         this.ctx.globalAlpha = 0.7;
-        this.drawText(this.tract.n*0.44, -0.28, "soft");
-        this.drawText(this.tract.n*0.51, -0.28, "palate");
-        this.drawText(this.tract.n*0.77, -0.28, "hard");
-        this.drawText(this.tract.n*0.84, -0.28, "palate");
-        this.drawText(this.tract.n*0.95, -0.28, " lip");
-        
+        if (showAnatomyLabels) {
+            this.drawText(this.tract.n*0.44, -0.28, "soft");
+            this.drawText(this.tract.n*0.51, -0.28, "palate");
+            this.drawText(this.tract.n*0.77, -0.28, "hard");
+            this.drawText(this.tract.n*0.84, -0.28, "palate");
+            this.drawText(this.tract.n*0.95, -0.28, " lip");
+        }
+
         this.ctx.font="17px Arial";        
-        this.drawTextStraight(this.tract.n*0.18, 3, "  tongue control");   
+        if (showControls) this.drawTextStraight(this.tract.n*0.18, 3, "  tongue control");   
         this.ctx.textAlign = "left";
-        this.drawText(this.tract.n*1.03, -1.07, "nasals");
-        this.drawText(this.tract.n*1.03, -0.28, "stops");
-        this.drawText(this.tract.n*1.03, 0.51, "fricatives");
-        //this.drawTextStraight(1.5, +0.8, "glottis")
+        if (showAnatomyLabels) {
+            this.drawText(this.tract.n*1.03, -1.07, "nasals");
+            this.drawText(this.tract.n*1.03, -0.28, "stops");
+            this.drawText(this.tract.n*1.03, 0.51, "fricatives");
+            //this.drawTextStraight(1.5, +0.8, "glottis")
+        }
+
         this.ctx.strokeStyle = "orchid";
         this.ctx.lineWidth = 2;
-        this.ctx.beginPath();
-        this.moveTo(this.tract.n*1.03, 0); this.lineTo(this.tract.n*1.07, 0); 
-        this.moveTo(this.tract.n*1.03, -this.noseOffset); this.lineTo(this.tract.n*1.07,  -this.noseOffset); 
-        this.ctx.stroke();
+        if (showAnatomyLabels) {
+            this.ctx.beginPath();
+            this.moveTo(this.tract.n*1.03, 0); this.lineTo(this.tract.n*1.07, 0); 
+            this.moveTo(this.tract.n*1.03, -this.noseOffset); this.lineTo(this.tract.n*1.07,  -this.noseOffset); 
+            this.ctx.stroke();
+        }
         this.ctx.globalAlpha = 0.9;
         this.ctx.globalAlpha = 1.0;
         this.ctx = tractCtx;
@@ -896,9 +915,9 @@ var GlottisUI = {
     semitones : 20,
     marks : [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0],
     baseNote : 87.3071, //F
-    init: function(glottis) {
+    init: function(glottis, showControls) {
         this.glottis = glottis;
-        this.drawKeyboard();
+        if (showControls) this.drawKeyboard();
     },
 
     drawKeyboard : function() {      

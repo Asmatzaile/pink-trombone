@@ -560,3 +560,8 @@ AudioSystem.init();
 Glottis.init();
 Tract.init();
 UI.init(AudioSystem, Glottis, Tract);
+
+document.addEventListener("pointerdown", () => {
+    AudioSystem.start();
+    Glottis.isTouched = true;
+}, { once: true })
