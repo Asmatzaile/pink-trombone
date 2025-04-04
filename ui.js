@@ -1,3 +1,5 @@
+import { clamp } from "./utils.js";
+
 var palePink = "#FFEEF5";
 const isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
 var temp = {a:0, b:0};
@@ -371,11 +373,11 @@ export const UI =
             }
             else if (touch.alive) 
             {
-                touch.fricative_intensity = Math.clamp((time-touch.startTime)/fricativeAttackTime, 0, 1);
+                touch.fricative_intensity = clamp((time-touch.startTime)/fricativeAttackTime, 0, 1);
             }
             else
             {
-                touch.fricative_intensity = Math.clamp(1-(time-touch.endTime)/fricativeAttackTime, 0, 1);
+                touch.fricative_intensity = clamp(1-(time-touch.endTime)/fricativeAttackTime, 0, 1);
             }
         }
         this.tract.fricativeTouches = this.touchesWithMouse;
@@ -845,12 +847,12 @@ var TractUI =
             var index = TractUI.getIndex(x,y);
             var diameter = TractUI.getDiameter(x,y);
             var fromPoint = (this.outerTongueControlRadius-diameter)/(this.outerTongueControlRadius-this.innerTongueControlRadius);
-            fromPoint = Math.clamp(fromPoint, 0, 1);
+            fromPoint = clamp(fromPoint, 0, 1);
             fromPoint = Math.pow(fromPoint, 0.58) - 0.2*(fromPoint*fromPoint-fromPoint); //horrible kludge to fit curve to straight line
-            this.tongueDiameter = Math.clamp(diameter, this.innerTongueControlRadius, this.outerTongueControlRadius);
-            //this.tongueIndex = Math.clamp(index, this.tongueLowerIndexBound, this.tongueUpperIndexBound);
+            this.tongueDiameter = clamp(diameter, this.innerTongueControlRadius, this.outerTongueControlRadius);
+            //this.tongueIndex = clamp(index, this.tongueLowerIndexBound, this.tongueUpperIndexBound);
             var out = fromPoint*0.5*(this.tongueUpperIndexBound-this.tongueLowerIndexBound);
-            this.tongueIndex = Math.clamp(index, this.tongueIndexCentre-out, this.tongueIndexCentre+out);
+            this.tongueIndex = clamp(index, this.tongueIndexCentre-out, this.tongueIndexCentre+out);
         }
         
         this.setRestDiameter();   
@@ -1031,12 +1033,12 @@ var GlottisUI = {
         {
             var local_y = this.touch.y -  this.keyboardTop-10;
             var local_x = this.touch.x - this.keyboardLeft;
-            local_y = Math.clamp(local_y, 0, this.keyboardHeight-26);
+            local_y = clamp(local_y, 0, this.keyboardHeight-26);
             var semitone = this.semitones * local_x / this.keyboardWidth + 0.5;
             this.glottis.UIFrequency = this.baseNote * Math.pow(2, semitone/12);
             if (this.glottis.intensity == 0) this.glottis.smoothFrequency = this.glottis.UIFrequency;
             //this.glottis.UIRd = 3*local_y / (this.keyboardHeight-20);
-            var t = Math.clamp(1-local_y / (this.keyboardHeight-28), 0, 1);
+            var t = clamp(1-local_y / (this.keyboardHeight-28), 0, 1);
             this.glottis.UITenseness = 1-Math.cos(t*Math.PI*0.5);
             this.glottis.loudness = Math.pow(this.glottis.UITenseness, 0.25);
             this.x = this.touch.x;

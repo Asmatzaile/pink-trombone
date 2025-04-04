@@ -1,31 +1,11 @@
 import { Noise } from "./Noise.js";
 import { UI } from "./ui.js";
+import { clamp } from "./utils.js";
 
-Math.clamp = function(number, min, max) {
-    if (number<min) return min;
-    else if (number>max) return max;
-    else return number;
-}
-
-Math.moveTowards = function(current, target, amount)
-{
-    if (current<target) return Math.min(current+amount, target);
-    else return Math.max(current-amount, target);
-}
-
-Math.moveTowards = function(current, target, amountUp, amountDown)
-{
+const moveTowards = (current, target, amountUp, amountDown) => {
     if (current<target) return Math.min(current+amountUp, target);
     else return Math.max(current-amountDown, target);
 }
-
-Math.gaussian = function()
-{
-    var s = 0;
-    for (var c=0; c<16; c++) s+=Math.random();
-    return (s-8)/4;
-}
-
 
 
 var sampleRate;
@@ -204,7 +184,7 @@ var Glottis =
         
         if (this.isTouched || this.alwaysVoice) this.intensity += 0.13;
         else this.intensity -= 0.05;
-        this.intensity = Math.clamp(this.intensity, 0, 1);
+        this.intensity = clamp(this.intensity, 0, 1);
     },    
     
     setupWaveform : function(lambda)
@@ -365,7 +345,7 @@ var Tract =
             if (i<this.noseStart) slowReturn = 0.6;
             else if (i >= this.tipStart) slowReturn = 1.0; 
             else slowReturn = 0.6+0.4*(i-this.noseStart)/(this.tipStart-this.noseStart);
-            this.diameter[i] = Math.moveTowards(diameter, targetDiameter, slowReturn*amount, 2*amount);
+            this.diameter[i] = moveTowards(diameter, targetDiameter, slowReturn*amount, 2*amount);
         }
         if (this.lastObstruction>-1 && newLastObstruction == -1 && this.noseA[0]<0.05)
         {
@@ -374,7 +354,7 @@ var Tract =
         this.lastObstruction = newLastObstruction;
         
         amount = deltaTime * this.movementSpeed; 
-        this.noseDiameter[0] = Math.moveTowards(this.noseDiameter[0], this.velumTarget, 
+        this.noseDiameter[0] = moveTowards(this.noseDiameter[0], this.velumTarget, 
                 amount*0.25, amount*0.1);
         this.noseA[0] = this.noseDiameter[0]*this.noseDiameter[0];        
     },
@@ -449,8 +429,8 @@ var Tract =
             this.R[i] = this.junctionOutputR[i]*0.999;
             this.L[i] = this.junctionOutputL[i+1]*0.999; 
             
-            //this.R[i] = Math.clamp(this.junctionOutputR[i] * this.fade, -1, 1);
-            //this.L[i] = Math.clamp(this.junctionOutputL[i+1] * this.fade, -1, 1);    
+            //this.R[i] = clamp(this.junctionOutputR[i] * this.fade, -1, 1);
+            //this.L[i] = clamp(this.junctionOutputL[i+1] * this.fade, -1, 1);    
             
             if (updateAmplitudes)
             {   
@@ -477,8 +457,8 @@ var Tract =
             this.noseR[i] = this.noseJunctionOutputR[i] * this.fade;
             this.noseL[i] = this.noseJunctionOutputL[i+1] * this.fade;   
             
-            //this.noseR[i] = Math.clamp(this.noseJunctionOutputR[i] * this.fade, -1, 1);
-            //this.noseL[i] = Math.clamp(this.noseJunctionOutputL[i+1] * this.fade, -1, 1);    
+            //this.noseR[i] = clamp(this.noseJunctionOutputR[i] * this.fade, -1, 1);
+            //this.noseL[i] = clamp(this.noseJunctionOutputL[i+1] * this.fade, -1, 1);    
             
             if (updateAmplitudes)
             {
@@ -547,8 +527,8 @@ var Tract =
         var i = Math.floor(index);
         var delta = index - i;
         turbulenceNoise *= Glottis.getNoiseModulator();
-        var thinness0 = Math.clamp(8*(0.7-diameter),0,1);
-        var openness = Math.clamp(30*(diameter-0.3), 0, 1);
+        var thinness0 = clamp(8*(0.7-diameter),0,1);
+        var openness = clamp(30*(diameter-0.3), 0, 1);
         var noise0 = turbulenceNoise*(1-delta)*thinness0*openness;
         var noise1 = turbulenceNoise*delta*thinness0*openness;
         this.R[i+1] += noise0/2;
