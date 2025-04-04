@@ -1,4 +1,4 @@
-import { noise } from "./noise.js";
+import { Noise } from "./Noise.js";
 import { UI } from "./ui.js";
 
 Math.clamp = function(number, min, max) {
@@ -152,6 +152,7 @@ var Glottis =
     init : function()
     {
         this.setupWaveform(0);
+        this.noise = new Noise();
     },
         
     runStep : function(lambda, noiseSource)
@@ -166,7 +167,7 @@ var Glottis =
         }
         var out = this.normalizedLFWaveform(this.timeInWaveform/this.waveformLength);
         var aspiration = this.intensity*(1-Math.sqrt(this.UITenseness))*this.getNoiseModulator()*noiseSource;
-        aspiration *= 0.2 + 0.02*noise.simplex1(this.totalTime * 1.99);
+        aspiration *= 0.2 + 0.02*this.noise.simplex1(this.totalTime * 1.99);
         out += aspiration;
         return out;
     },
@@ -180,6 +181,7 @@ var Glottis =
     
     finishBlock : function()
     {
+        const noise = this.noise;
         var vibrato = 0;
         vibrato += this.vibratoAmount * Math.sin(2*Math.PI * this.totalTime *this.vibratoFrequency);          
         vibrato += 0.02 * noise.simplex1(this.totalTime * 4.07);
