@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <!--
 
@@ -49,18 +50,25 @@ IN THE SOFTWARE.
 
 <head>
 <title>Pink Trombone</title>
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 
-<body style="margin: 0; padding: 0; background-color:white">
+<body style="height:100dvh;">
 
-<canvas id="tractCanvas" width="600" height="600" 
-style = "position: absolute; z-index: 1;  background-color:transparent; margin: 0; padding: 0;">
-</canvas>
-<canvas id="backCanvas" width="600" height="600" 
-style = "position: absolute; z-index: 0; background-color:transparent; margin: 0; padding: 0;">
-</canvas>
+<div style="max-height:100%;aspect-ratio: 1; cursor:pointer; position: relative;inset: 50%;translate:-50% -50%;">
+    <canvas id="backCanvas" style="width:100%;height:100%;" width="600" height="600"></canvas>
+    <canvas id="tractCanvas" style="width:100%;height:100%;position:absolute; inset:0; "width="600" height="600"></canvas>
+</div>
+
+
+<style>
+    * {
+    margin: 0;
+    padding: 0;
+}
+</style>
+
 
 
 <script>
@@ -133,6 +141,10 @@ var UI =
         tractCanvas.addEventListener('touchend', UI.endTouches);     
         tractCanvas.addEventListener('touchcancel', UI.endTouches);  
         
+        const onResize = newSize => this.width = newSize;
+        const observer = new ResizeObserver(entries => onResize(entries[0].borderBoxSize[0].inlineSize));
+        observer.observe(tractCanvas);
+
         document.addEventListener('touchstart', (function(event) {event.preventDefault();}) );
         
         document.addEventListener('mousedown', (function(event)
@@ -294,8 +306,8 @@ var UI =
             var touches = event.changedTouches;
             for (var j=0; j<touches.length; j++)        
             {
-                var x = (touches[j].pageX-UI.left_margin)/UI.width*600;
-                var y = (touches[j].pageY-UI.top_margin)/UI.width*600;
+                var x = (touches[j].clientX-tractCanvas.getBoundingClientRect().left)/UI.width*600;
+                var y = (touches[j].clientY-tractCanvas.getBoundingClientRect().top)/UI.width*600;
             }
             UI.instructionsScreenHandleTouch(x,y);
             return;
@@ -311,8 +323,8 @@ var UI =
             touch.fricative_intensity = 0;            
             touch.alive = true;
             touch.id = touches[j].identifier;
-            touch.x = (touches[j].pageX-UI.left_margin)/UI.width*600;
-            touch.y = (touches[j].pageY-UI.top_margin)/UI.width*600;
+            touch.x = (touches[j].clientX-tractCanvas.getBoundingClientRect().left)/UI.width*600;
+            touch.y = (touches[j].clientY-tractCanvas.getBoundingClientRect().top)/UI.width*600;
             touch.index = TractUI.getIndex(touch.x, touch.y);
             touch.diameter = TractUI.getDiameter(touch.x, touch.y);
             UI.touchesWithMouse.push(touch);
@@ -339,8 +351,8 @@ var UI =
             var touch = UI.getTouchById(touches[j].identifier);
             if (touch != 0)
             {
-                touch.x = (touches[j].pageX-UI.left_margin)/UI.width*600;
-                touch.y = (touches[j].pageY-UI.top_margin)/UI.width*600;
+                touch.x = (touches[j].clientY-tractCanvas.getBoundingClientRect().left)/UI.width*600;
+                touch.y = (touches[j].clientY-tractCanvas.getBoundingClientRect().top)/UI.width*600;
                 touch.index = TractUI.getIndex(touch.x, touch.y);
                 touch.diameter = TractUI.getDiameter(touch.x, touch.y);
             }
@@ -382,8 +394,8 @@ var UI =
         }
         if (UI.inInstructionsScreen)
         {
-            var x = (event.pageX-tractCanvas.offsetLeft)/UI.width*600;
-            var y = (event.pageY-tractCanvas.offsetTop)/UI.width*600;
+            var x = (event.clientX-tractCanvas.getBoundingClientRect().left)/UI.width*600;
+            var y = (event.clientY-tractCanvas.getBoundingClientRect().top)/UI.width*600;
             UI.instructionsScreenHandleTouch(x,y);
             return;
         }
@@ -394,8 +406,8 @@ var UI =
         touch.endTime = 0;
         touch.alive = true;
         touch.id = "mouse"+Math.random();
-        touch.x = (event.pageX-tractCanvas.offsetLeft)/UI.width*600;
-        touch.y = (event.pageY-tractCanvas.offsetTop)/UI.width*600;
+        touch.x = (event.clientX-tractCanvas.getBoundingClientRect().left)/UI.width*600;
+        touch.y = (event.clientY-tractCanvas.getBoundingClientRect().top)/UI.width*600;
         touch.index = TractUI.getIndex(touch.x, touch.y);
         touch.diameter = TractUI.getDiameter(touch.x, touch.y);
         UI.mouseTouch = touch;
@@ -408,8 +420,8 @@ var UI =
     {
         var touch = UI.mouseTouch;
         if (!touch.alive) return;
-        touch.x = (event.pageX-tractCanvas.offsetLeft)/UI.width*600;
-        touch.y = (event.pageY-tractCanvas.offsetTop)/UI.width*600;
+        touch.x = (event.clientX-tractCanvas.getBoundingClientRect().left)/UI.width*600;
+        touch.y = (event.clientY-tractCanvas.getBoundingClientRect().top)/UI.width*600;
         touch.index = TractUI.getIndex(touch.x, touch.y);
         touch.diameter = TractUI.getDiameter(touch.x, touch.y); 
         UI.handleTouches();
@@ -451,26 +463,6 @@ var UI =
                 touch.fricative_intensity = Math.clamp(1-(time-touch.endTime)/fricativeAttackTime, 0, 1);
             }
         }
-    },
-        
-    shapeToFitScreen : function()
-    {
-        if (window.innerWidth <= window.innerHeight)
-        {
-            this.width = window.innerWidth-10;
-            this.left_margin = 5;
-            this.top_margin = 0.5*(window.innerHeight-this.width);
-        }
-        else
-        {
-            this.width = window.innerHeight-10;
-            this.left_margin = 0.5*(window.innerWidth-this.width);
-            this.top_margin = 5;
-        }
-        document.body.style.marginLeft = this.left_margin;
-        document.body.style.marginTop = this.top_margin;
-        tractCanvas.style.width = this.width;
-        backCanvas.style.width = this.width;  
     }
 }
 
@@ -1700,9 +1692,6 @@ function makeButton(x, y, width, height, text, switchedOn)
     return button;
 }
 
-
-document.body.style.cursor = 'pointer';
-
 AudioSystem.init();
 UI.init();
 Glottis.init();
@@ -1712,7 +1701,6 @@ TractUI.init();
 requestAnimationFrame(redraw);
 function redraw(highResTimestamp)
 {
-    UI.shapeToFitScreen();
     TractUI.draw();
     UI.draw();
     requestAnimationFrame(redraw);
