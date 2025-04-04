@@ -1,0 +1,31 @@
+{
+  "name": "pink-trombone",
+  "version": "0.0.0",
+  "description": "A headless programmable polyphonic version of Neil Thapen's Pink Trombone",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/asmatzaile/pink-trombone.git"
+  },
+  "keywords": [
+    "api",
+    "speech-synthesis",
+    "web-audio",
+    "procedural-audio",
+    "voice-synthesis",
+    "voice",
+    "pink-trombone",
+    "voice-design",
+    "polyphonic",
+    "headless"
+  ],
+  "author": "Gorka Egino Arroyo <gorkainventor@gmail.com>",
+  "contributors": [
+    "Neil Thapen <thapen@math.cas.cz>"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/asmatzaile/pink-trombone/issues"
+  },
+  "homepage": "https://github.com/asmatzaile/pink-trombone#readme"
+}

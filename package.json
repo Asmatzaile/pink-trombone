@@ -1,0 +1,11 @@
+{
+  "name": "pink-trombone-monorepo",
+  "scripts": {
+    "dev": "npm run dev -w demo"
+  },
+  "private": true,
+  "workspaces": [
+    "pink-trombone",
+    "demo"
+  ]
+}
