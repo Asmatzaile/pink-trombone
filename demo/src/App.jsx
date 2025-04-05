@@ -20,6 +20,7 @@ function App() {
     const audioContext =  new AudioContext();
     setStarted(true);
     const trombone = new PinkTrombone(audioContext);
+    window.trombone = trombone; // for debugging
     const { tractCanvas } = UI.init(trombone);
     tractCanvas.className = "w-full h-full absolute inset-0"
     trombone.glottis.isTouched = true;

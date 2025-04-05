@@ -61,16 +61,27 @@ var noiseQ = 0.7;
 
 
 export class PinkTrombone {
+    isDisposed = false;
+
     constructor(audioContext) {
         this.glottis = new Glottis();
         this.tract = new Tract(this.glottis);
         this.audioSystem = new AudioSystem(audioContext, this.glottis, this.tract);
     }
+
+    dispose() {
+        this.isDisposed = true;
+		this.audioSystem.dispose();
+		this.audioSystem = null;
+		this.glottis = null;
+		this.tract = null;
+	}
 }
 
 class AudioSystem {   
     blockLength = 512;
     blockTime = 1;
+    isDisposed = false;
 
     constructor(audioContext, glottis, tract) {
         this.audioContext = audioContext;
@@ -86,23 +97,25 @@ class AudioSystem {
         this.scriptProcessor.connect(this.audioContext.destination); 
         this.scriptProcessor.onaudioprocess = (e) => this.doScriptProcessor(e);
     
-        var whiteNoise = this.createWhiteNoiseNode(2*sampleRate); // 2 seconds of noise
+        this.whiteNoise = this.createWhiteNoiseNode(2*sampleRate); // 2 seconds of noise
         
         var aspirateFilter = this.audioContext.createBiquadFilter();
         aspirateFilter.type = "bandpass";
         aspirateFilter.frequency.value = 500;
         aspirateFilter.Q.value = 0.5;
-        whiteNoise.connect(aspirateFilter);
+        this.whiteNoise.connect(aspirateFilter);
         aspirateFilter.connect(this.scriptProcessor);  
         
         var fricativeFilter = this.audioContext.createBiquadFilter();
         fricativeFilter.type = "bandpass";
         fricativeFilter.frequency.value = 1000;
         fricativeFilter.Q.value = 0.5;
-        whiteNoise.connect(fricativeFilter);
-        fricativeFilter.connect(this.scriptProcessor);        
+        this.whiteNoise.connect(fricativeFilter);
+        fricativeFilter.connect(this.scriptProcessor);
+
+        this.filters = [aspirateFilter, fricativeFilter];
         
-        whiteNoise.start(0);
+        this.whiteNoise.start(0);
     }
     
     createWhiteNoiseNode(frameCount) {
@@ -151,6 +164,24 @@ class AudioSystem {
     unmute() {
         this.scriptProcessor.connect(this.audioContext.destination); 
     }
+
+    dispose() {
+        this.isDisposed = true;
+		this.scriptProcessor.disconnect();
+		this.scriptProcessor.onaudioprocess = null;
+		this.scriptProcessor = null;
+
+		this.whiteNoise.stop();
+		this.whiteNoise.disconnect();
+		this.whiteNoise.buffer = null;
+		this.whiteNoise = null;
+
+		this.filters.forEach(filter => filter.disconnect());
+		this.filters = null;
+
+		this.glottis = null;
+		this.tract = null;
+	}
     
 }
 
