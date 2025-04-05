@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AudioSystem, Glottis, Tract } from "pink-trombone"
+import { PinkTrombone } from "pink-trombone"
 import { UI } from "./trombone-ui";
 
 let init = false;
@@ -17,13 +17,10 @@ function App() {
     if (init) return;
     init = true;
     setStarted(true);
-    AudioSystem.init();
-    Glottis.init();
-    Tract.init();
-    const { tractCanvas } = UI.init(AudioSystem, Glottis, Tract);
+    const trombone = new PinkTrombone();
+    const { tractCanvas } = UI.init(trombone);
     tractCanvas.className = "w-full h-full absolute inset-0"
-    AudioSystem.start();
-    Glottis.isTouched = true;
+    trombone.glottis.isTouched = true;
   }
   
   useEffect(() => {

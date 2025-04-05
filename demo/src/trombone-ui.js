@@ -74,11 +74,11 @@ export const UI =
     showControls: false,
     showAnatomyLabels: false,
     
-    init : function(audioSystem, glottis, tract)
+    init : function(trombone)
     {
-        this.glottis = glottis;
-        this.tract = tract;
-        this.audioSystem = audioSystem;
+        this.glottis = trombone.glottis;
+        this.tract = trombone.tract;
+        this.audioSystem = trombone.audioSystem;
 
         this.touchesWithMouse = [];
         this.mouseTouch = {alive: false, endTime: 0};
@@ -114,8 +114,8 @@ export const UI =
         document.addEventListener('mouseup', (e) => UI.endMouse(e));
         document.addEventListener('mousemove', (e) => UI.moveMouse(e));    
         
-        TractUI.init(tract, glottis, {showControls: this.showControls, showAnatomyLabels: this.showAnatomyLabels, ctx: tractCtx, canvas: tractCanvas, backCtx });
-        GlottisUI.init(glottis, this.showControls, {ctx: backCtx});
+        TractUI.init(this.tract, this.glottis, {showControls: this.showControls, showAnatomyLabels: this.showAnatomyLabels, ctx: tractCtx, canvas: tractCanvas, backCtx });
+        GlottisUI.init(this.glottis, this.showControls, {ctx: backCtx});
         requestAnimationFrame(redraw);
 
         return { backCanvas, tractCanvas };
@@ -260,10 +260,6 @@ export const UI =
     {
         if (!this.showControls) return;
         event.preventDefault();
-        if (!this.audioSystem.started)
-        {
-            this.audioSystem.start();
-        }
         
         if (UI.inAboutScreen)
         {
@@ -356,10 +352,6 @@ export const UI =
         if (!this.showControls) return;
         UI.mouseDown = true;
         event.preventDefault();
-        if (!this.audioSystem.started)
-        {
-            this.audioSystem.start();
-        }
         if (UI.inAboutScreen)
         {
             UI.inAboutScreen = false;
