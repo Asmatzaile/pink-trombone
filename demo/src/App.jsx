@@ -17,7 +17,9 @@ function App() {
     if (init) return;
     init = true;
     setStarted(true);
-    const trombone = new PinkTrombone();
+    const audioContext =  new AudioContext();
+    setStarted(true);
+    const trombone = new PinkTrombone(audioContext);
     const { tractCanvas } = UI.init(trombone);
     tractCanvas.className = "w-full h-full absolute inset-0"
     trombone.glottis.isTouched = true;

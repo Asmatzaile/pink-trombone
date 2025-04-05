@@ -61,10 +61,10 @@ var noiseQ = 0.7;
 
 
 export class PinkTrombone {
-    constructor() {
+    constructor(audioContext) {
         this.glottis = new Glottis();
         this.tract = new Tract(this.glottis);
-        this.audioSystem = new AudioSystem(this.glottis, this.tract);
+        this.audioSystem = new AudioSystem(audioContext, this.glottis, this.tract);
     }
 }
 
@@ -72,9 +72,8 @@ class AudioSystem {
     blockLength = 512;
     blockTime = 1;
 
-    constructor(glottis, tract) {
-        window.AudioContext = window.AudioContext||window.webkitAudioContext;
-        this.audioContext = new window.AudioContext();      
+    constructor(audioContext, glottis, tract) {
+        this.audioContext = audioContext;
         sampleRate = this.audioContext.sampleRate;
         
         this.blockTime = this.blockLength/sampleRate;
