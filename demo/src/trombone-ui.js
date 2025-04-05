@@ -85,8 +85,8 @@ export const UI =
         this.mouseDown = false;
         
         this.aboutButton = makeButton(460, 392, 140, 30, "about...", true);         
-        this.alwaysVoiceButton = makeButton(460, 428, 140, 30, "always voice", true);
-        this.autoWobbleButton = makeButton(460, 464, 140, 30, "pitch wobble", true); 
+        this.alwaysVoiceButton = makeButton(460, 428, 140, 30, "always voice", trombone.glottis.alwaysVoice);
+        this.autoWobbleButton = makeButton(460, 464, 140, 30, "pitch wobble", trombone.glottis.autoWobble); 
 
         var backCanvas = document.createElement("canvas");
         backCanvas.width = 600;

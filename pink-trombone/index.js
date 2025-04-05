@@ -48,6 +48,8 @@ IN THE SOFTWARE.
 import { Noise } from "./Noise.js";
 
 const clamp = (number, min, max) => Math.max(min, Math.min(max, number));
+const hertzToMidi = hertz => 12 * Math.log2(hertz / 440) + 69;
+const midiToHertz = midi => 440 * Math.pow(2, (midi - 69) / 12);
 
 const moveTowards = (current, target, amountUp, amountDown) => {
     if (current<target) return Math.min(current+amountUp, target);
@@ -76,6 +78,28 @@ export class PinkTrombone {
 		this.glottis = null;
 		this.tract = null;
 	}
+
+    get isVoiced() { return this.glottis.isTouched }
+	set isVoiced(v) { this.glottis.isTouched = v }
+
+	get tenseness() { return this.glottis.UITenseness }
+	set tenseness(v) { this.glottis.UITenseness = v }
+
+	get frequency() { return this.glottis.UIFrequency }
+	set frequency(v) { this.glottis.UIFrequency = v }
+	get pitch() { return hertzToMidi(this.frequency) }
+	set pitch(v) { this.frequency = midiToHertz(v) }
+
+    get vibrato() {
+        const glottis = this.glottis;
+        return {
+            get amount() { return glottis.vibratoAmount },
+            set amount(v) { glottis.vibratoAmount = v },
+            get frequency() { return glottis.vibratoFrequency },
+            set frequency(v) { glottis.vibratoFrequency = v },
+        }
+    }
+
 }
 
 class AudioSystem {   
@@ -201,8 +225,8 @@ class Glottis {
     intensity = 0;
     loudness = 1;
     isTouched = false;
-    alwaysVoice = true;
-    autoWobble = true;
+    alwaysVoice = false;
+    autoWobble = false;
     
     constructor() {
         this.setupWaveform(0);

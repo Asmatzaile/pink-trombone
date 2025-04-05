@@ -20,10 +20,11 @@ function App() {
     const audioContext =  new AudioContext();
     setStarted(true);
     const trombone = new PinkTrombone(audioContext);
+    trombone.isVoiced = true;
+    trombone.pitch = Math.random() * (64-41) + 41; // between F2 and E4
     window.trombone = trombone; // for debugging
     const { tractCanvas } = UI.init(trombone);
     tractCanvas.className = "w-full h-full absolute inset-0"
-    trombone.glottis.isTouched = true;
   }
   
   useEffect(() => {
