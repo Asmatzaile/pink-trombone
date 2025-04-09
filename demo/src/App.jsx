@@ -1,11 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { PinkTrombone } from "pink-trombone"
+import { TromboneParams } from './TromboneParams';
 import { UI } from "./trombone-ui";
 
 function App() {
   const [started, setStarted] = useState(false);
   const audioContextRef = useRef();
+
   const [trombones, setTrombones] = useState(new Set());
+  const [paramTrombone, setParamTrombone] = useState();
+
+  const updateParamTrombone = (newTrombone) => {
+    if (paramTrombone === newTrombone) setParamTrombone(undefined);
+    else setParamTrombone(newTrombone);
+  }
 
   const canvasContainerRef = useRef();
   useEffect(() => {
@@ -43,6 +51,7 @@ function App() {
       return n;
     })
     trombone.dispose();
+    updateParamTrombone(undefined);
   }
 
   useEffect(() => {
@@ -51,9 +60,13 @@ function App() {
   }, [started])
 
   const tromboneDivs = [...trombones].map(t=> {
-    return <div onClick={() => t.delete()}
+    const isOpen = paramTrombone === t;
+    return <div className="flex flex-col items-center relative">
+      <div onClick={() => updateParamTrombone(t)}
       className=' bg-pink-300 w-full h-full hover:*:visible cursor-pointer grid place-items-center'>
-      <div className='invisible text-lg'>Delete</div>
+        <div className='invisible text-lg'>Options</div>
+      </div>
+      { isOpen && <div className="w-1/2 bg-pink-300 rounded-full h-2 absolute -bottom-4"/>}
     </div>
   })
   if (!started) return <>
@@ -68,6 +81,7 @@ function App() {
             <div className='invisible text-lg'>New</div>
           </div>
       </div>
+      { paramTrombone && <TromboneParams trombone={paramTrombone} />}
       <div ref={canvasContainerRef} className="pointer relative max-h-full aspect-square inset-0.5 -translate-0.5 hidden" />
     </div>
   )
