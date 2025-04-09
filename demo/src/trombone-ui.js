@@ -48,7 +48,6 @@ IN THE SOFTWARE.
 const clamp = (number, min, max) => Math.max(min, Math.min(max, number));
 
 var palePink = "#FFEEF5";
-const isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
 var temp = {a:0, b:0};
 
 var time = 0;
@@ -66,9 +65,6 @@ export const UI =
     width : 600,
     top_margin : 5,
     left_margin : 5,
-    inAboutScreen : true,
-    inInstructionsScreen : false,
-    instructionsLine : 0,
     debugText : "",
 
     showControls: false,
@@ -83,10 +79,6 @@ export const UI =
         this.touchesWithMouse = [];
         this.mouseTouch = {alive: false, endTime: 0};
         this.mouseDown = false;
-        
-        this.aboutButton = makeButton(460, 392, 140, 30, "about...", true);         
-        this.alwaysVoiceButton = makeButton(460, 428, 140, 30, "always voice", trombone.glottis.alwaysVoice);
-        this.autoWobbleButton = makeButton(460, 464, 140, 30, "pitch wobble", trombone.glottis.autoWobble); 
 
         var backCanvas = document.createElement("canvas");
         backCanvas.width = 600;
@@ -123,135 +115,6 @@ export const UI =
     draw : function()
     {
         TractUI.draw({showControls: this.showControls, showAnatomyLabels: this.showAnatomyLabels });
-        if (!this.showControls) return;
-        this.alwaysVoiceButton.draw(this.tractCtx);
-        this.autoWobbleButton.draw(this.tractCtx);
-        this.aboutButton.draw(this.tractCtx);
-        if (this.inAboutScreen) this.drawAboutScreen();
-        else if (this.inInstructionsScreen) this.drawInstructionsScreen();
-
-    },
-    
-    drawAboutScreen :  function()
-    {
-        var ctx = this.tractCtx;
-        ctx.globalAlpha = 0.8;
-        ctx.fillStyle = "white";
-        ctx.rect(0,0,600,600);
-        ctx.fill();   
-    
-        this.drawAboutText();
-    },
-    
-    drawAboutText : function()
-    {
-        var ctx = this.tractCtx;
-        ctx.globalAlpha = 1.0;
-        ctx.fillStyle = "#C070C6";
-        ctx.strokeStyle = "#C070C6";
-        ctx.font="50px Arial";
-        ctx.lineWidth = 3;
-        ctx.textAlign = "center";
-        ctx.strokeText("P i n k   T r o m b o n e", 300, 230);
-        ctx.fillText("P i n k   T r o m b o n e", 300, 230);
-        
-        ctx.font="28px Arial";
-        ctx.fillText("bare-handed  speech synthesis", 300, 330);
-
-        ctx.font="20px Arial";        
-        //ctx.fillText("(tap to start)", 300, 380);   
-
-        if (isFirefox) 
-        {
-            ctx.font="20px Arial";        
-            ctx.fillText("(sorry - may work poorly with the Firefox browser)", 300, 430);  
-        }
-    },
-
-    
-    drawInstructionsScreen :  function()
-    {
-        this.audioSystem.mute();
-        var ctx = this.tractCtx;
-        ctx.globalAlpha = 0.85;
-        ctx.fillStyle = "white";
-        ctx.rect(0,0,600,600);
-        ctx.fill();   
-        
-        ctx.globalAlpha = 1.0;
-        ctx.fillStyle = "#C070C6";
-        ctx.strokeStyle = "#C070C6";
-        ctx.font="24px Arial";
-        ctx.lineWidth = 2;
-        ctx.textAlign = "center";
-        
-        ctx.font = "19px Arial";
-        ctx.textAlign = "left";
-        this.instructionsLine = 0;
-        this.write("Sound is generated in the glottis (at the bottom left) then ");
-        this.write("filtered by the shape of the vocal tract. The voicebox ");
-        this.write("controls the pitch and intensity of the initial sound.");
-        this.write("");
-        this.write("Then, to talk:");
-        this.write("");
-        this.write("- move the body of the tongue to shape vowels");
-        this.write("");
-        this.write("- touch the oral cavity to narrow it, for fricative consonants");
-        this.write("");
-        this.write("- touch above the oral cavity to close it, for stop consonants");
-        this.write("");
-        this.write("- touch the nasal cavity to open the velum and let sound ");
-        this.write("   flow through the nose.");
-        this.write("");
-        this.write("");
-        this.write("(tap anywhere to continue)");
-        
-        ctx.textAlign = "center";
-        ctx.fillText("[tap here to RESET]", 470, 535);
-        
-        this.instructionsLine = 18.8;
-        ctx.textAlign = "left";
-        this.write("Pink Trombone v1.1");
-        this.write("by Neil Thapen");
-        ctx.fillStyle = "blue";
-        ctx.globalAlpha = 0.6;
-        this.write("venuspatrol.nfshost.com");
-        
-        /*ctx.beginPath();
-        ctx.rect(35, 535, 230, 35);
-        ctx.rect(370, 505, 200, 50);
-        ctx.fill();*/
-        
-        ctx.globalAlpha = 1.0;
-    },
-
-    
-    instructionsScreenHandleTouch : function(x,y)
-    {
-        if ((x >=35 && x<=265) && (y>=535 && y<=570)) window.location.href = "http://venuspatrol.nfshost.com";
-        else if ((x>=370 && x<=570) && (y>=505 && y<=555)) location.reload(false);
-        else
-        {
-            UI.inInstructionsScreen = false;
-            UI.aboutButton.switchedOn = true;
-            this.audioSystem.unmute();
-        }
-    },
-    
-    write : function(text)
-    {
-        this.tractCtx.fillText(text, 50, 100 + this.instructionsLine*22);
-        this.instructionsLine += 1;
-        if (text == "") this.instructionsLine -= 0.3;
-    },
-    
-    buttonsHandleTouchStart : function(touch)
-    {
-        this.alwaysVoiceButton.handleTouchStart(touch);
-        this.glottis.alwaysVoice = this.alwaysVoiceButton.switchedOn;
-        this.autoWobbleButton.handleTouchStart(touch);
-        this.glottis.autoWobble = this.autoWobbleButton.switchedOn;
-        this.aboutButton.handleTouchStart(touch);
 
     },
     
@@ -259,24 +122,6 @@ export const UI =
     {
         if (!this.showControls) return;
         event.preventDefault();
-        
-        if (UI.inAboutScreen)
-        {
-            UI.inAboutScreen = false;
-            return;
-        }
-        
-        if (UI.inInstructionsScreen)
-        {
-            var touches = event.changedTouches;
-            for (var j=0; j<touches.length; j++)        
-            {
-                var x = (touches[j].clientX-this.tractCanvas.getBoundingClientRect().left)/UI.width*600;
-                var y = (touches[j].clientY-this.tractCanvas.getBoundingClientRect().top)/UI.width*600;
-            }
-            UI.instructionsScreenHandleTouch(x,y);
-            return;
-        }
         
 
         var touches = event.changedTouches;
@@ -292,11 +137,10 @@ export const UI =
             touch.y = (touches[j].clientY-this.tractCanvas.getBoundingClientRect().top)/UI.width*600;
             touch.index = TractUI.getIndex(touch.x, touch.y);
             touch.diameter = TractUI.getDiameter(touch.x, touch.y);
-            UI.touchesWithMouse.push(touch);
-            UI.buttonsHandleTouchStart(touch);            
+            UI.touchesWithMouse.push(touch);       
         }    
 
-        UI.handleTouches();
+        TractUI.handleTouches();
     },
     
     getTouchById : function(id)
@@ -323,7 +167,7 @@ export const UI =
                 touch.diameter = TractUI.getDiameter(touch.x, touch.y);
             }
         }   
-        UI.handleTouches();
+        TractUI.handleTouches();
     },
     
     endTouches : function(event)
@@ -338,12 +182,7 @@ export const UI =
                 touch.endTime = time; 
             }
         }   
-        UI.handleTouches();
-        
-        if (!UI.aboutButton.switchedOn) 
-        {
-            UI.inInstructionsScreen = true;
-        }
+        TractUI.handleTouches();
     },
       
     startMouse : function(event)
@@ -351,19 +190,7 @@ export const UI =
         if (!this.showControls) return;
         UI.mouseDown = true;
         event.preventDefault();
-        if (UI.inAboutScreen)
-        {
-            UI.inAboutScreen = false;
-            return;
-        }
-        if (UI.inInstructionsScreen)
-        {
-            var x = (event.clientX-this.tractCanvas.getBoundingClientRect().left)/UI.width*600;
-            var y = (event.clientY-this.tractCanvas.getBoundingClientRect().top)/UI.width*600;
-            UI.instructionsScreenHandleTouch(x,y);
-            return;
-        }
-        
+
         var touch = {};
         touch.startTime = time;
         touch.fricative_intensity = 0;
@@ -375,9 +202,8 @@ export const UI =
         touch.index = TractUI.getIndex(touch.x, touch.y);
         touch.diameter = TractUI.getDiameter(touch.x, touch.y);
         UI.mouseTouch = touch;
-        UI.touchesWithMouse.push(touch);   
-        UI.buttonsHandleTouchStart(touch);
-        UI.handleTouches();
+        UI.touchesWithMouse.push(touch);
+        TractUI.handleTouches();
     },    
 
     moveMouse : function(event)
@@ -389,7 +215,7 @@ export const UI =
         touch.y = (event.clientY-this.tractCanvas.getBoundingClientRect().top)/UI.width*600;
         touch.index = TractUI.getIndex(touch.x, touch.y);
         touch.diameter = TractUI.getDiameter(touch.x, touch.y); 
-        UI.handleTouches();
+        TractUI.handleTouches();
     },
     
     endMouse : function(event)
@@ -399,13 +225,6 @@ export const UI =
         if (!touch.alive) return;
         touch.alive = false;
         touch.endTime = time; 
-        UI.handleTouches();
-        
-        if (!UI.aboutButton.switchedOn) UI.inInstructionsScreen = true;  
-    },
-    
-    handleTouches : function(event)
-    {
         TractUI.handleTouches();
     },
     
@@ -928,65 +747,4 @@ var TractUI =
         }      
     },
 
-}
-
-function makeButton(x, y, width, height, text, switchedOn)
-{
-    const button = {};
-    button.x = x;
-    button.y = y;
-    button.width = width;
-    button.height = height;
-    button.text = text;
-    button.switchedOn = switchedOn;
-    
-    button.draw = function(ctx)
-    {
-        var radius = 10;
-        ctx.strokeStyle = palePink;
-        ctx.fillStyle = palePink;        
-        ctx.globalAlpha = 1.0;     
-        ctx.lineCap = 'round';        
-        ctx.lineJoin = 'round';        
-        ctx.lineWidth = 2*radius;     
-        
-        ctx.beginPath();
-        ctx.moveTo(this.x+radius, this.y+radius);
-        ctx.lineTo(this.x+this.width-radius, this.y+radius);
-        ctx.lineTo(this.x+this.width-radius, this.y+this.height-radius);
-        ctx.lineTo(this.x+radius, this.y+this.height-radius);
-        ctx.closePath();
-        ctx.stroke();
-        ctx.fill();
-        
-        ctx.font="16px Arial";
-        ctx.textAlign = "center";
-        if (this.switchedOn) 
-        {
-            ctx.fillStyle = "orchid";        
-            ctx.globalAlpha = 0.6;
-        }
-        else        
-        {
-            ctx.fillStyle = "white";        
-            ctx.globalAlpha = 1.0;
-        }
-        this.drawText(ctx);
-    };
-    
-    button.drawText = function(ctx)
-    {
-        ctx.fillText(this.text, this.x+this.width/2, this.y+this.height/2+6);
-    };
-    
-    button.handleTouchStart = function(touch)
-    {
-        if (touch.x>=this.x && touch.x <= this.x + this.width  
-            && touch.y >= this.y && touch.y <= this.y + this.height)
-        {
-            this.switchedOn = !this.switchedOn;
-        }
-    };
-    
-    return button;
 }
