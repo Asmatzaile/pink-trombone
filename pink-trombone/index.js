@@ -82,8 +82,18 @@ export class PinkTrombone {
     get isVoiced() { return this.glottis.isTouched }
 	set isVoiced(v) { this.glottis.isTouched = v }
 
-	get tenseness() { return this.glottis.UITenseness }
-	set tenseness(v) { this.glottis.UITenseness = v }
+    get voicedness() {
+        return Math.acos(1-this.#tenseness) * 2 / Math.PI;
+        // if loudness was set separately (diffeent relationship than pow(tenseness, 0.25)) it wouldn't work
+    }
+    set voicedness(v) {
+        this.#tenseness = 1-Math.cos(v*Math.PI*0.5);
+        this.#loudness = Math.pow(this.#tenseness, 0.25);
+    }
+    get #loudness() { return this.glottis.loudness }
+    set #loudness(v) { this.glottis.loudness = v }
+	get #tenseness() { return this.glottis.UITenseness }
+	set #tenseness(v) { this.glottis.UITenseness = v }
 
 	get frequency() { return this.glottis.UIFrequency }
 	set frequency(v) { this.glottis.UIFrequency = v }

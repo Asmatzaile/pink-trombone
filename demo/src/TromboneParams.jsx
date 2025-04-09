@@ -19,7 +19,7 @@ class NumberParam {
 
 const params = {
     isVoiced: new BoolParam(),
-    tenseness: new NumberParam(0, 1),
+    voicedness: new NumberParam(0, 1),
     pitch: new NumberParam(41, 64),
     "vibrato.amount": new NumberParam(0, 1),
     "vibrato.frequency": new NumberParam(0, 10),
