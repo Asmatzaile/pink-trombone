@@ -47,6 +47,8 @@ IN THE SOFTWARE.
 
 import { Noise } from "./Noise.js";
 
+const lerp = (a, b, t) => a + (b - a) * t;
+const normalize = (value, min, max) => (value - min) / (max - min);
 const clamp = (number, min, max) => Math.max(min, Math.min(max, number));
 const hertzToMidi = hertz => 12 * Math.log2(hertz / 440) + 69;
 const midiToHertz = midi => 440 * Math.pow(2, (midi - 69) / 12);
@@ -109,6 +111,9 @@ export class PinkTrombone {
             set frequency(v) { glottis.vibratoFrequency = v },
         }
     }
+
+    get nasality() { return normalize(this.tract.velumTarget, 0.01, 0.4) } 
+    set nasality(v) { this.tract.velumTarget = lerp(0.01, 0.4, v) }
 
 }
 

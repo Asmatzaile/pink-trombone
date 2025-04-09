@@ -357,9 +357,7 @@ var TractUI =
         this.ctx.lineCap = 'round';        
         this.ctx.lineJoin = 'round';  
         
-        if (showControls) {
-            this.drawTongueControl();
-        }
+        this.drawTongue();
         
         var velum = this.tract.noseDiameter[0];
         var velumAngle = velum * 4;
@@ -595,7 +593,7 @@ var TractUI =
         this.ctx.globalAlpha = 1;
     },
     
-    drawTongueControl : function()
+    drawTongue : function()
     {
         this.ctx.lineCap = "round";
         this.ctx.lineJoin = "round";
@@ -661,9 +659,8 @@ var TractUI =
             this.tract.restDiameter[i] = 1.5 - curve;
         }
     },
-    
-    handleTouches : function()
-    {           
+
+    handleTongueTouch: function() {
         if (this.tongueTouch != 0 && !this.tongueTouch.alive) this.tongueTouch = 0;
         
         if (this.tongueTouch == 0)
@@ -699,12 +696,9 @@ var TractUI =
             var out = fromPoint*0.5*(this.tongueUpperIndexBound-this.tongueLowerIndexBound);
             this.tongueIndex = clamp(index, this.tongueIndexCentre-out, this.tongueIndexCentre+out);
         }
-        
-        this.setRestDiameter();   
-        for (var i=0; i<this.tract.n; i++) this.tract.targetDiameter[i] = this.tract.restDiameter[i];        
-        
-        //other constrictions and nose
-        this.tract.velumTarget = 0.01;
+    },
+
+    handleConstrictions: function() {
         for (var j=0; j<UI.touchesWithMouse.length; j++) 
         {
             var touch = UI.touchesWithMouse[j];
@@ -713,38 +707,42 @@ var TractUI =
             var y = touch.y;
             var index = TractUI.getIndex(x,y);
             var diameter = TractUI.getDiameter(x,y);
-            if (index > this.tract.noseStart && diameter < -this.noseOffset)
-            {         
-                this.tract.velumTarget = 0.4;
-            }            
+        
             temp.a = index;
             temp.b = diameter;
             if (diameter < -0.85-this.noseOffset) continue;
             diameter -= 0.3;
             if (diameter<0) diameter = 0;         
-            var width=2;
-            if (index<25) width = 10;
-            else if (index>=this.tract.tipStart) width= 5;
-            else width = 10-5*(index-25)/(this.tract.tipStart-25);
-            if (index >= 2 && index < this.tract.n && y<this.canvas.height && diameter < 3)
-            {
-                const intIndex = Math.round(index);
-                for (var i=-Math.ceil(width)-1; i<width+1; i++) 
-                {   
-                    if (intIndex+i<0 || intIndex+i>=this.tract.n) continue;
-                    var relpos = (intIndex+i) - index;
-                    relpos = Math.abs(relpos)-0.5;
-                    var shrink;
-                    if (relpos <= 0) shrink = 0;
-                    else if (relpos > width) shrink = 1;
-                    else shrink = 0.5*(1-Math.cos(Math.PI * relpos / width));
-                    if (diameter < this.tract.targetDiameter[intIndex+i])
-                    {
-                        this.tract.targetDiameter[intIndex+i] = diameter + (this.tract.targetDiameter[intIndex+i]-diameter)*shrink;
-                    }
+
+            // radial deformer's width is 10 at start (and less than 25), 5 at end (and more than 32), interpolation inbetween
+            const width = clamp(10-5*(index-25)/(this.tract.tipStart-25), 5, 10);
+
+
+            if (!(index >= 2 && index < this.tract.n && y<this.canvas.height && diameter < 3)) continue;
+            const intIndex = Math.round(index);
+            for (var i=-Math.ceil(width)-1; i<width+1; i++) 
+            {   
+                if (intIndex+i<0 || intIndex+i>=this.tract.n) continue;
+                var relpos = (intIndex+i) - index;
+                relpos = Math.abs(relpos)-0.5;
+                var shrink;
+                if (relpos <= 0) shrink = 0;
+                else if (relpos > width) shrink = 1;
+                else shrink = 0.5*(1-Math.cos(Math.PI * relpos / width));
+                if (diameter < this.tract.targetDiameter[intIndex+i])
+                {
+                    this.tract.targetDiameter[intIndex+i] = diameter + (this.tract.targetDiameter[intIndex+i]-diameter)*shrink;
                 }
             }
-        }      
+        }
+    },
+    
+    handleTouches : function()
+    {       
+        this.handleTongueTouch();
+        this.setRestDiameter(); // takes into account new position of tongue
+        for (var i=0; i<this.tract.n; i++) this.tract.targetDiameter[i] = this.tract.restDiameter[i];
+        this.handleConstrictions();
     },
 
 }
