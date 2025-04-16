@@ -257,7 +257,6 @@ var TractUI =
     originY : 449, 
     radius : 298,  // radius of tract. unnafected by scale
     scale : 60, // affects how close/far the tongue is seen, how thick is the image...
-    tongueTouch : 0,
     angleScale : 0.64,
     angleOffset : -0.24,
     noseOffset : 0.8,
@@ -476,8 +475,7 @@ var TractUI =
             this.drawText(this.tract.n*0.95, -0.28, " lip");
         }
 
-        this.ctx.font="17px Arial";        
-        if (showControls) this.drawTextStraight(this.tract.n*0.18, 3, "  tongue control");   
+        this.ctx.font="17px Arial";
         this.ctx.textAlign = "left";
         if (showAnatomyLabels) {
             this.drawText(this.tract.n*1.03, -1.07, "nasals");
@@ -638,46 +636,6 @@ var TractUI =
         this.ctx.fillStyle = "orchid";
      },
 
-    handleTongueTouch: function() {
-        if (this.tongueTouch != 0 && !this.tongueTouch.alive) this.tongueTouch = 0;
-        
-        if (this.tongueTouch == 0)
-        {        
-            for (var j=0; j<UI.touchesWithMouse.length; j++)  
-            {
-                var touch = UI.touchesWithMouse[j];
-                if (!touch.alive) continue;
-                if (touch.fricative_intensity == 1) continue; //only new touches will pass this
-                var x = touch.x;
-                var y = touch.y;        
-                var index = TractUI.getIndex(x,y);
-                var diameter = TractUI.getDiameter(x,y);
-                if (index >= this.tongue.minIndex-4 && index<=this.tongue.maxIndex+4 
-                    && diameter >= this.tongue.minDiameter-0.5 && diameter <= this.tongue.maxDiameter+0.5)
-                {
-                    this.tongueTouch = touch;
-                }
-            }    
-        }
-        
-        if (this.tongueTouch != 0)
-        {
-            var x = this.tongueTouch.x;
-            var y = this.tongueTouch.y;        
-            var index = TractUI.getIndex(x,y);
-            var diameter = TractUI.getDiameter(x,y);
-            this.tongue.diameter = clamp(diameter, this.tongue.minDiameter, this.tongue.maxDiameter);
-            var fromPoint = (this.tongue.maxDiameter-diameter)/(this.tongue.maxDiameter-this.tongue.minDiameter);
-            fromPoint = clamp(fromPoint, 0, 1);
-            fromPoint = Math.pow(fromPoint, 0.58) - 0.2*(fromPoint*fromPoint-fromPoint); //horrible kludge to fit curve to straight line
-
-            this.tongue.index = clamp(index, this.tongue.minIndex, this.tongue.maxIndex);
-            //this.tongue.index = clamp(index, this.tongue.minIndex, this.tongue.maxIndex);
-            var out = fromPoint*0.5*(this.tongue.maxIndex-this.tongue.minIndex);
-            this.tongue.index = clamp(index, this.tongue.meanIndex-out, this.tongue.meanIndex+out);
-        }
-    },
-
     handleConstrictions: function() {
         for (var j=0; j<UI.touchesWithMouse.length; j++) 
         {
@@ -718,8 +676,8 @@ var TractUI =
     },
     
     handleTouches : function()
-    {       
-        this.handleTongueTouch();
+    {
+        this.tract.setRestDiameter(); // still needed for constrictions
         this.handleConstrictions();
     },
 
