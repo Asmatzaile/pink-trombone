@@ -255,17 +255,12 @@ var TractUI =
 {
     originX : 340, 
     originY : 449, 
-    radius : 298, 
-    scale : 60,
-    tongueIndex : 12.9,
-    tongueDiameter : 2.43,
-    innerTongueControlRadius : 2.05,
-    outerTongueControlRadius : 3.5,
+    radius : 298,  // radius of tract. unnafected by scale
+    scale : 60, // affects how close/far the tongue is seen, how thick is the image...
     tongueTouch : 0,
     angleScale : 0.64,
     angleOffset : -0.24,
     noseOffset : 0.8,
-    gridOffset : 1.7,
     fillColour : 'pink',
     lineColour : '#C070C6',
     
@@ -275,16 +270,10 @@ var TractUI =
         this.canvas = canvas;
         this.backCtx = backCtx;
         this.tract = tract;
+        this.tongue = tract.tongue;
         this.glottis = glottis;
-        this.setRestDiameter();
-        for (var i=0; i<this.tract.n; i++) 
-        {
-            this.tract.diameter[i] = this.tract.targetDiameter[i] = this.tract.restDiameter[i];
-        }
+
         this.drawBackground(showControls, showAnatomyLabels);
-        this.tongueLowerIndexBound = this.tract.bladeStart+2;
-        this.tongueUpperIndexBound = this.tract.tipStart-3;
-        this.tongueIndexCentre = 0.5*(this.tongueLowerIndexBound+this.tongueUpperIndexBound);
     },
     
     moveTo : function(i,d) 
@@ -343,7 +332,8 @@ var TractUI =
         var xx = x-this.originX; var yy = y-this.originY;
         var angle = Math.atan2(yy, xx);
         while (angle> 0) angle -= 2*Math.PI;
-        return (Math.PI + angle - this.angleOffset)*(this.tract.lipStart-1) / (this.angleScale*Math.PI);
+        angle = (Math.PI + angle - this.angleOffset) / (this.angleScale * Math.PI);
+        return angle * (this.tract.lipStart - 1);
     },
     getDiameter : function(x,y)
     {
@@ -604,34 +594,35 @@ var TractUI =
         this.ctx.lineWidth = 45;
         
         //outline
-        this.moveTo(this.tongueLowerIndexBound, this.innerTongueControlRadius);
-        for (var i=this.tongueLowerIndexBound+1; i<=this.tongueUpperIndexBound; i++) this.lineTo(i, this.innerTongueControlRadius);
-        this.lineTo(this.tongueIndexCentre, this.outerTongueControlRadius);
+        this.moveTo(this.tongue.minIndex, this.tongue.minDiameter);
+        const tongueIndexCenter = this.tongue.meanIndex;
+        for (var i=this.tongue.minIndex+1; i<=this.tongue.maxIndex; i++) this.lineTo(i, this.tongue.minDiameter);
+        this.lineTo(tongueIndexCenter, this.tongue.maxDiameter);
         this.ctx.closePath();
         this.ctx.stroke();
         this.ctx.fill();
         
-        var a = this.innerTongueControlRadius;
-        var c = this.outerTongueControlRadius;
+        var a = this.tongue.minDiameter;
+        var c = this.tongue.maxDiameter;
         var b = 0.5*(a+c);
         var r = 3;
         this.ctx.fillStyle = "orchid";
         this.ctx.globalAlpha = 0.3;        
-        this.drawCircle(this.tongueIndexCentre, a, r);
-        this.drawCircle(this.tongueIndexCentre-4.25, a, r);
-        this.drawCircle(this.tongueIndexCentre-8.5, a, r);
-        this.drawCircle(this.tongueIndexCentre+4.25, a, r);
-        this.drawCircle(this.tongueIndexCentre+8.5, a, r);
-        this.drawCircle(this.tongueIndexCentre-6.1, b, r);    
-        this.drawCircle(this.tongueIndexCentre+6.1, b, r);  
-        this.drawCircle(this.tongueIndexCentre, b, r);  
-        this.drawCircle(this.tongueIndexCentre, c, r);
+        this.drawCircle(tongueIndexCenter, a, r);
+        this.drawCircle(tongueIndexCenter-4.25, a, r);
+        this.drawCircle(tongueIndexCenter-8.5, a, r);
+        this.drawCircle(tongueIndexCenter+4.25, a, r);
+        this.drawCircle(tongueIndexCenter+8.5, a, r);
+        this.drawCircle(tongueIndexCenter-6.1, b, r);    
+        this.drawCircle(tongueIndexCenter+6.1, b, r);  
+        this.drawCircle(tongueIndexCenter, b, r);  
+        this.drawCircle(tongueIndexCenter, c, r);
         
         this.ctx.globalAlpha = 1.0;         
 
         //circle for tongue position
-        var angle = this.angleOffset + this.tongueIndex * this.angleScale * Math.PI / (this.tract.lipStart-1);
-        var r = this.radius - this.scale*(this.tongueDiameter);
+        var angle = this.angleOffset + this.tongue.index * this.angleScale * Math.PI / (this.tract.lipStart-1);
+        var r = this.radius - this.scale*(this.tongue.diameter);
         var x = this.originX-r*Math.cos(angle);
         var y = this.originY-r*Math.sin(angle);
         this.ctx.lineWidth = 4;
@@ -646,19 +637,6 @@ var TractUI =
         
         this.ctx.fillStyle = "orchid";
      },
-    
-    setRestDiameter : function()
-    {
-        for (var i=this.tract.bladeStart; i<this.tract.lipStart; i++)
-        {
-            var t = 1.1 * Math.PI*(this.tongueIndex - i)/(this.tract.tipStart - this.tract.bladeStart);
-            var fixedTongueDiameter = 2+(this.tongueDiameter-2)/1.5;
-            var curve = (1.5-fixedTongueDiameter+this.gridOffset)*Math.cos(t);
-            if (i == this.tract.bladeStart-2 || i == this.tract.lipStart-1) curve *= 0.8;
-            if (i == this.tract.bladeStart || i == this.tract.lipStart-2) curve *= 0.94;               
-            this.tract.restDiameter[i] = 1.5 - curve;
-        }
-    },
 
     handleTongueTouch: function() {
         if (this.tongueTouch != 0 && !this.tongueTouch.alive) this.tongueTouch = 0;
@@ -674,8 +652,8 @@ var TractUI =
                 var y = touch.y;        
                 var index = TractUI.getIndex(x,y);
                 var diameter = TractUI.getDiameter(x,y);
-                if (index >= this.tongueLowerIndexBound-4 && index<=this.tongueUpperIndexBound+4 
-                    && diameter >= this.innerTongueControlRadius-0.5 && diameter <= this.outerTongueControlRadius+0.5)
+                if (index >= this.tongue.minIndex-4 && index<=this.tongue.maxIndex+4 
+                    && diameter >= this.tongue.minDiameter-0.5 && diameter <= this.tongue.maxDiameter+0.5)
                 {
                     this.tongueTouch = touch;
                 }
@@ -688,13 +666,15 @@ var TractUI =
             var y = this.tongueTouch.y;        
             var index = TractUI.getIndex(x,y);
             var diameter = TractUI.getDiameter(x,y);
-            var fromPoint = (this.outerTongueControlRadius-diameter)/(this.outerTongueControlRadius-this.innerTongueControlRadius);
+            this.tongue.diameter = clamp(diameter, this.tongue.minDiameter, this.tongue.maxDiameter);
+            var fromPoint = (this.tongue.maxDiameter-diameter)/(this.tongue.maxDiameter-this.tongue.minDiameter);
             fromPoint = clamp(fromPoint, 0, 1);
             fromPoint = Math.pow(fromPoint, 0.58) - 0.2*(fromPoint*fromPoint-fromPoint); //horrible kludge to fit curve to straight line
-            this.tongueDiameter = clamp(diameter, this.innerTongueControlRadius, this.outerTongueControlRadius);
-            //this.tongueIndex = clamp(index, this.tongueLowerIndexBound, this.tongueUpperIndexBound);
-            var out = fromPoint*0.5*(this.tongueUpperIndexBound-this.tongueLowerIndexBound);
-            this.tongueIndex = clamp(index, this.tongueIndexCentre-out, this.tongueIndexCentre+out);
+
+            this.tongue.index = clamp(index, this.tongue.minIndex, this.tongue.maxIndex);
+            //this.tongue.index = clamp(index, this.tongue.minIndex, this.tongue.maxIndex);
+            var out = fromPoint*0.5*(this.tongue.maxIndex-this.tongue.minIndex);
+            this.tongue.index = clamp(index, this.tongue.meanIndex-out, this.tongue.meanIndex+out);
         }
     },
 
@@ -740,8 +720,6 @@ var TractUI =
     handleTouches : function()
     {       
         this.handleTongueTouch();
-        this.setRestDiameter(); // takes into account new position of tongue
-        for (var i=0; i<this.tract.n; i++) this.tract.targetDiameter[i] = this.tract.restDiameter[i];
         this.handleConstrictions();
     },
 

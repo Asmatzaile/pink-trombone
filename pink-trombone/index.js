@@ -115,6 +115,33 @@ export class PinkTrombone {
     get nasality() { return normalize(this.tract.velumTarget, 0.01, 0.4) } 
     set nasality(v) { this.tract.velumTarget = lerp(0.01, 0.4, v) }
 
+    #frontness = 0.5;
+    #openness = 1;
+    get vowel() {
+        const trombone = this;
+        return {
+            get frontness() { return trombone.#frontness},
+            set frontness(v) {
+                trombone.#frontness = clamp(v, 0, 1);
+                const min = 1 - Math.sqrt(1-Math.pow(1-trombone.#frontness, 2));
+                trombone.#openness = clamp(trombone.#openness, min, 1);
+                trombone.updateTongue();
+            },
+            get openness() { return trombone.#openness},
+            set openness(v) {
+                trombone.#openness = clamp(v, 0, 1);
+                const min = 1 - Math.sqrt(1-Math.pow(1-trombone.#openness, 2));
+                trombone.#frontness = clamp(trombone.#frontness, min, 1);
+                trombone.updateTongue();
+            }
+        }
+    }
+    updateTongue() {
+        const theta = Math.atan2(1-this.#openness, 1-this.#frontness);
+        const r = Math.sqrt(Math.pow(1-this.#openness,2)+Math.pow(1-this.#frontness,2));
+        this.tract.tongue.setPolarCoords(r, theta);
+    }
+
 }
 
 class AudioSystem {   
@@ -360,6 +387,100 @@ class Glottis {
 }
 
 
+class Tongue {
+    // high level
+    setPolarCoords(r, theta) {
+        const normTheta = theta / (Math.PI / 2);
+        this.r = r;
+        this.index = this.getIndexFromLocalNorm(r, normTheta);
+    }
+
+    // low level
+    constructor(tract) {
+        this.tract = tract;
+        this.refTriangle = this.buildRefTriangle();
+        this._r = this.diameterToLocalR(); // why here
+    }
+
+    buildRefTriangle() {
+        // angle is somewhat arbitrary, although constraints are set on
+        // 'frontness' and 'openness' to behave as if they were half pi radians apart
+        const ANGLE = Math.PI / 2;
+        const GAMMA = (Math.PI*2 - ANGLE) / 2;
+        const B = this.tract.__diameter - this.maxDiameter;
+        const C = this.tract.__diameter - this.minDiameter;
+        const BETA = Math.asin(B*Math.sin(GAMMA)/C);
+        const ALPHA = Math.PI - GAMMA - BETA;
+        const A = B * Math.sin(ALPHA) / Math.sin(BETA);
+        return {
+            A, // line from tongue 'triangle' open vertex to middle vertex
+            B, // line from tract origin to tongue 'triangle' middle vertex
+            C, // line from tract origin to tongue 'triangle' vertex
+            ALPHA, BETA, GAMMA, // angles of the vertex opposite to the line
+        };
+    }
+    _index = 12.9;
+    get index() { return this._index };
+    get minIndex() { return this.tract.bladeStart + 2 }; 
+    get maxIndex() { return this.tract.tipStart - 3 };
+    get meanIndex() { return (this.minIndex + this.maxIndex) * 0.5 };
+    set index(v) { this._index = v; this.tract.setRestDiameter()};
+    // here diameter refers to distance from tract, not to the deformation circle
+    _diameter  = 2.43;
+    get diameter() { return this._diameter };
+    set diameter(v) { this._diameter = v; this._r = this.diameterToLocalR();this.tract.setRestDiameter() };
+    minDiameter = 2.05;
+    maxDiameter = 3.5;
+
+    // middle level, i guess ?
+    // r is 'equivalent' for diameter. calculated when tract is received with constructor
+    _r = undefined;
+    get r() { return this._r };
+    set r(v) { this._r = v; this.diameter = this.localRToDiameter(v) };
+    localRToDiameter() {
+        if (this.r === 0) return this.maxDiameter;
+        if (this.r === 1) return this.minDiameter;
+
+        const {A, B, GAMMA} = this.refTriangle;
+        const a = this.r * A;
+        const b = B;
+        const gamma = GAMMA;
+        const c = Math.sqrt(a**2 + b**2 - 2*a*b*Math.cos(gamma));
+        const diameter = this.tract.__diameter - c;
+        return diameter;
+    }
+    diameterToLocalR() {
+        if (this.diameter === this.maxDiameter) return 0;
+        if (this.diameter === this.minDiameter) return 1;
+
+        const {A, B, GAMMA} = this.refTriangle;
+        const c = this.tract.__diameter - this.diameter;
+        const b = B;
+        const gamma = GAMMA;
+        const beta = Math.asin(Math.sin(gamma)*b/c);
+        const alpha = Math.PI - gamma - beta;
+        const a = c * Math.sin(alpha) / Math.sin(gamma);
+        const r = a / A;
+        return r;
+    }
+
+    getIndexFromLocalNorm(r, localNorm) {
+        const {A, ALPHA, GAMMA} = this.refTriangle;
+        const a = r * A;
+        const c = this.tract.__diameter - this.diameter;
+        const gamma = GAMMA;
+        const alpha = Math.asin(a * Math.sin(gamma) / c);
+        const ratio = alpha / ALPHA;
+
+        const maxOffset = this.maxIndex - this.meanIndex;
+        const currentMaxOffset = maxOffset * ratio;
+        const currentMinIndex = this.meanIndex - currentMaxOffset;
+        const currentMaxIndex = this.meanIndex + currentMaxOffset;
+
+        return lerp(currentMinIndex, currentMaxIndex, localNorm);
+    }
+}
+
 class Tract {
     n = 44;
     bladeStart = 10;
@@ -385,8 +506,15 @@ class Tract {
     lipOutput = 0;
     noseOutput = 0;
     velumTarget = 0.01;
+    gridOffset = 1.7;
+
+    // Comes from old trombone TractUI's radius / scale
+    // necessary to use though because things like tongue maxdiameter, mindiameter... depend on that
+    __diameter = 4.966;
 
     fricativeTouches = [];
+
+    tongue = new Tongue(this);
 
     constructor(glottis) {
         this.glottis = glottis;
@@ -438,6 +566,22 @@ class Tract {
         this.calculateReflections();        
         this.calculateNoseReflections();
         this.noseDiameter[0] = this.velumTarget;
+
+        this.setRestDiameter();
+        this.restDiameter.forEach((v, i) => this.diameter[i] = v);
+    }
+
+    // takes into account new position of tongue. also updates target diameter
+    setRestDiameter() {
+        for (var i=this.bladeStart; i<this.lipStart; i++) {
+            var t = 1.1 * Math.PI*(this.tongue.index - i)/(this.tipStart - this.bladeStart);
+            var fixedTongueDiameter = 2+(this.tongue.diameter-2)/1.5;
+            var curve = (1.5-fixedTongueDiameter+this.gridOffset)*Math.cos(t);
+            if (i == this.bladeStart-2 || i == this.lipStart-1) curve *= 0.8;
+            if (i == this.bladeStart || i == this.lipStart-2) curve *= 0.94;               
+            this.restDiameter[i] = 1.5 - curve;
+        }
+        this.restDiameter.forEach((v, i) => this.targetDiameter[i] = v);
     }
     
     reshapeTract(deltaTime) {

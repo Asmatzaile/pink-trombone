@@ -24,6 +24,8 @@ const params = {
     "vibrato.amount": new NumberParam(0, 1),
     "vibrato.frequency": new NumberParam(0, 10),
     nasality: new NumberParam(0, 1),
+    "vowel.frontness": new NumberParam(0, 1),
+    "vowel.openness": new NumberParam(0, 1),
 }
 
 
