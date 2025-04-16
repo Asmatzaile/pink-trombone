@@ -11,8 +11,9 @@ function App() {
   const [paramTrombone, setParamTrombone] = useState();
 
   const updateParamTrombone = (newTrombone) => {
-    if (paramTrombone === newTrombone) setParamTrombone(undefined);
-    else setParamTrombone(newTrombone);
+    if (paramTrombone === newTrombone) return setParamTrombone(undefined);
+    setParamTrombone(newTrombone);
+    UI.switchTrombone(newTrombone);
   }
 
   const canvasContainerRef = useRef();
@@ -73,7 +74,7 @@ function App() {
   <div className='h-dvh grid place-items-center cursor-pointer'>Click anywhere to start.</div>
   </>
   return (
-    <div className='h-dvh flex flex-col gap-10 justify-center items-center'>
+    <div className="h-dvh flex flex-col gap-10 justify-center items-center">
       <p> Demo app for headless <a className="cursor-pointer" href="https://dood.al/pinktrombone/">Pink Trombone</a>.</p>
       <div className="grid grid-cols-[repeat(auto-fit,100px)] self-stretch content-center justify-center  *:size-20 gap-4">
           {tromboneDivs}
@@ -81,8 +82,10 @@ function App() {
             <div className='invisible text-lg'>New</div>
           </div>
       </div>
-      { paramTrombone && <TromboneParams trombone={paramTrombone} />}
-      <div ref={canvasContainerRef} className="pointer relative max-h-full aspect-square inset-0.5 -translate-0.5 hidden" />
+      <div className={`flex items-center ${paramTrombone ? "" : "hidden"}`}>
+        { paramTrombone && <TromboneParams trombone={paramTrombone} />}
+        <div className="relative" ref={canvasContainerRef} />
+      </div>
     </div>
   )
 }

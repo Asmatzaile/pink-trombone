@@ -111,6 +111,16 @@ export const UI =
 
         return { backCanvas, tractCanvas };
     },
+
+    switchTrombone: function(newTrombone) {
+        this.glottis = newTrombone.glottis;
+        this.tract = newTrombone.tract;
+        this.audioSystem = newTrombone.audioSystem;
+
+        TractUI.tract = this.tract;
+        TractUI.glottis = this.glottis;
+        TractUI.tongue = this.tract.tongue;
+    },
     
     draw : function()
     {
