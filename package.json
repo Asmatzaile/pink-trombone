@@ -1,7 +1,8 @@
 {
   "name": "pink-trombone-monorepo",
   "scripts": {
-    "dev": "npm run dev -w demo"
+    "dev": "npm run dev -w demo",
+    "deploy:demo": "npm --prefix demo run deploy"
   },
   "private": true,
   "workspaces": [
