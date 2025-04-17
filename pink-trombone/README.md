@@ -30,7 +30,8 @@ document.addEventListener("pointerdown", () => {
 
 ## API
 
-> [!TIP] Check out the [live demo](https://asmatzaile.github.io/pink-trombone/) to get a feeling for all the methods, plus a visual explanation!
+> [!TIP]
+> Check out the [live demo](https://asmatzaile.github.io/pink-trombone/) to get a feeling for all the methods, plus a visual explanation!
 
 ### Class `PinkTrombone`
 

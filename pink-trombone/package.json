@@ -1,6 +1,6 @@
 {
   "name": "pink-trombone",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A headless programmable polyphonic version of Neil Thapen's Pink Trombone",
   "main": "index.js",
   "repository": {
