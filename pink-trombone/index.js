@@ -142,6 +142,8 @@ export class PinkTrombone {
         this.tract.tongue.setPolarCoords(r, theta);
     }
 
+    get constrictions() { return this.tract.constrictions }
+
 }
 
 class AudioSystem {   
@@ -481,6 +483,46 @@ class Tongue {
     }
 }
 
+// index and diameter will be used by Tract, while location ('normtheta') and strength ('r') will be used by PinkTrombone
+class Constriction {
+    index;
+    minIndex = 2;
+    // maxIndex with constructor
+    diameter; // not the diameter of the constriction but the distance from the tract 'surface'
+    minDiameter = 0; // on surface
+    maxDiameter = 3;
+
+    fricativeAttackTime = 100; // ms
+    constructor(location=1, strength=1, tractN, updateTract) {
+        this.updateTract = updateTract;
+        this.minIndex = 2;
+        this.maxIndex = tractN;
+        this.location = location;
+        this.strength = strength;
+        this.creationTime = Date.now();
+    }
+
+    get location() { return normalize(this.index, this.minIndex, this.maxIndex) }
+    set location(v) { this.index = lerp(this.minIndex, this.maxIndex, v); this.updateTract() }
+    // strength will be inversely proportional to diameter, hence the 'reversal' of min and max
+    get strength() { return normalize(this.diameter, this.maxDiameter, this.minDiameter) }
+    set strength(v) { this.diameter = lerp(this.maxDiameter, this.minDiameter, v); this.updateTract() }
+
+    get fricativeIntensity() {
+        const time = Date.now();
+        const dividend = this.removeTime ? 1 - (time-this.removeTime) : time-this.creationTime;
+        return clamp(dividend/this.fricativeAttackTime, 0, 1);
+    }
+
+    get isDestroyed() { return this.removeTime !== undefined }
+
+    destroy(callback) {
+        this.removeTime = Date.now();
+        callback();
+        // setTimeout(callback, 1000);
+    }
+}
+
 class Tract {
     n = 44;
     bladeStart = 10;
@@ -512,7 +554,7 @@ class Tract {
     // necessary to use though because things like tongue maxdiameter, mindiameter... depend on that
     __diameter = 4.966;
 
-    fricativeTouches = [];
+    constrictions = new Set();
 
     tongue = new Tongue(this);
 
@@ -569,6 +611,44 @@ class Tract {
 
         this.setRestDiameter();
         this.restDiameter.forEach((v, i) => this.diameter[i] = v);
+
+        this.constrictions._add = this.constrictions.add;
+        this.constrictions.add = (location, strength) => {
+            const constriction = new Constriction(location, strength, this.n, this.handleConstrictions.bind(this));
+            this.constrictions._add(constriction);
+            this.handleConstrictions();
+            return constriction;
+        }
+        this.constrictions.remove = (constriction) => {
+            if (!(constriction instanceof Constriction)) return;
+            constriction.destroy(() => {
+                this.constrictions.delete(constriction);
+                this.handleConstrictions();
+            });
+        }
+    }
+
+    handleConstrictions() {
+        this.setRestDiameter();
+        this.constrictions.forEach(constriction => {
+            const { index, diameter } = constriction;
+            const intIndex = Math.round(index);
+            // radial deformer's width is 10 at start (and less than 25), 5 at end (and more than 32), interpolation inbetween
+            const width = clamp(10-5*(index-25)/(this.tipStart-25), 5, 10);
+            for (var i=-Math.ceil(width)-1; i<width+1; i++) {   
+               if (intIndex+i<0 || intIndex+i>=this.n) continue;
+               var relpos = (intIndex+i) - index;
+               relpos = Math.abs(relpos)-0.5;
+               var shrink;
+               if (relpos <= 0) shrink = 0;
+               else if (relpos > width) shrink = 1;
+               else shrink = 0.5*(1-Math.cos(Math.PI * relpos / width));
+               if (diameter < this.targetDiameter[intIndex+i])
+               {
+                   this.targetDiameter[intIndex+i] = diameter + (this.targetDiameter[intIndex+i]-diameter)*shrink;
+               }
+           }
+        })
     }
 
     // takes into account new position of tongue. also updates target diameter
@@ -755,15 +835,12 @@ class Tract {
     }
     
     addTurbulenceNoise(turbulenceNoise) {
-        for (var j=0; j<this.fricativeTouches.length; j++)
-        {
-            var touch = this.fricativeTouches[j];
-            if (touch.index<2 || touch.index>this.n) continue;
-            if (touch.diameter<=0) continue;            
-            var intensity = touch.fricative_intensity;
-            if (intensity == 0) continue;
-            this.addTurbulenceNoiseAtIndex(0.66*turbulenceNoise*intensity, touch.index, touch.diameter);
-        }
+        this.constrictions.forEach(constriction => {
+            const {index, diameter} = constriction;
+            const intensity = constriction.fricativeIntensity;
+            if (intensity === 0) return;
+            this.addTurbulenceNoiseAtIndex(0.66*turbulenceNoise*intensity, index, diameter);
+        })
     }
     
     addTurbulenceNoiseAtIndex(turbulenceNoise, index, diameter) {   

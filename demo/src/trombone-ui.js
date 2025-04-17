@@ -45,17 +45,13 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 */
 
-const clamp = (number, min, max) => Math.max(min, Math.min(max, number));
-
 var palePink = "#FFEEF5";
-var temp = {a:0, b:0};
 
 var time = 0;
 
 function redraw(highResTimestamp)
 {
     time = Date.now()/1000;
-    UI.updateTouches();
     UI.draw();
     requestAnimationFrame(redraw);
 }
@@ -67,7 +63,6 @@ export const UI =
     left_margin : 5,
     debugText : "",
 
-    showControls: false,
     showAnatomyLabels: false,
     
     init : function(trombone)
@@ -75,10 +70,6 @@ export const UI =
         this.glottis = trombone.glottis;
         this.tract = trombone.tract;
         this.audioSystem = trombone.audioSystem;
-
-        this.touchesWithMouse = [];
-        this.mouseTouch = {alive: false, endTime: 0};
-        this.mouseDown = false;
 
         var backCanvas = document.createElement("canvas");
         backCanvas.width = 600;
@@ -93,20 +84,11 @@ export const UI =
         this.backCanvas = backCanvas;
         this.tractCanvas = tractCanvas;
 
-        tractCanvas.addEventListener('touchstart', UI.startTouches);
-        tractCanvas.addEventListener('touchmove', UI.moveTouches);
-        tractCanvas.addEventListener('touchend', UI.endTouches);     
-        tractCanvas.addEventListener('touchcancel', UI.endTouches);  
-
         const onResize = newSize => this.width = newSize;
         const observer = new ResizeObserver(entries => onResize(entries[0].borderBoxSize[0].inlineSize));
         observer.observe(tractCanvas);
-
-        document.addEventListener('mousedown', (e) => UI.startMouse(e));
-        document.addEventListener('mouseup', (e) => UI.endMouse(e));
-        document.addEventListener('mousemove', (e) => UI.moveMouse(e));    
         
-        TractUI.init(this.tract, this.glottis, {showControls: this.showControls, showAnatomyLabels: this.showAnatomyLabels, ctx: tractCtx, canvas: tractCanvas, backCtx });
+        TractUI.init(this.tract, this.glottis, {showAnatomyLabels: this.showAnatomyLabels, ctx: tractCtx, canvas: tractCanvas, backCtx });
         requestAnimationFrame(redraw);
 
         return { backCanvas, tractCanvas };
@@ -124,141 +106,9 @@ export const UI =
     
     draw : function()
     {
-        TractUI.draw({showControls: this.showControls, showAnatomyLabels: this.showAnatomyLabels });
+        TractUI.draw({showAnatomyLabels: this.showAnatomyLabels });
 
     },
-    
-    startTouches : function(event)
-    {
-        if (!this.showControls) return;
-        event.preventDefault();
-        
-
-        var touches = event.changedTouches;
-        for (var j=0; j<touches.length; j++)        
-        {
-            var touch = {};
-            touch.startTime = time;
-            touch.endTime = 0;
-            touch.fricative_intensity = 0;            
-            touch.alive = true;
-            touch.id = touches[j].identifier;
-            touch.x = (touches[j].clientX-this.tractCanvas.getBoundingClientRect().left)/UI.width*600;
-            touch.y = (touches[j].clientY-this.tractCanvas.getBoundingClientRect().top)/UI.width*600;
-            touch.index = TractUI.getIndex(touch.x, touch.y);
-            touch.diameter = TractUI.getDiameter(touch.x, touch.y);
-            UI.touchesWithMouse.push(touch);       
-        }    
-
-        TractUI.handleTouches();
-    },
-    
-    getTouchById : function(id)
-    {
-        for (var j=0; j<UI.touchesWithMouse.length; j++)
-        {
-            if (UI.touchesWithMouse[j].id == id && UI.touchesWithMouse[j].alive) return UI.touchesWithMouse[j];
-        }
-        return 0;
-    },
-    
-    moveTouches : function(event)
-    {
-        if (!this.showControls) return;
-        var touches = event.changedTouches;
-        for (var j=0; j<touches.length; j++)        
-        {
-            var touch = UI.getTouchById(touches[j].identifier);
-            if (touch != 0)
-            {
-                touch.x = (touches[j].clientX-this.tractCanvas.getBoundingClientRect().left)/UI.width*600;
-                touch.y = (touches[j].clientY-this.tractCanvas.getBoundingClientRect().top)/UI.width*600;
-                touch.index = TractUI.getIndex(touch.x, touch.y);
-                touch.diameter = TractUI.getDiameter(touch.x, touch.y);
-            }
-        }   
-        TractUI.handleTouches();
-    },
-    
-    endTouches : function(event)
-    {
-        var touches = event.changedTouches;
-        for (var j=0; j<touches.length; j++)        
-        {
-            var touch = UI.getTouchById(touches[j].identifier);
-            if (touch != 0)
-            {
-                touch.alive = false;
-                touch.endTime = time; 
-            }
-        }   
-        TractUI.handleTouches();
-    },
-      
-    startMouse : function(event)
-    {
-        if (!this.showControls) return;
-        UI.mouseDown = true;
-        event.preventDefault();
-
-        var touch = {};
-        touch.startTime = time;
-        touch.fricative_intensity = 0;
-        touch.endTime = 0;
-        touch.alive = true;
-        touch.id = "mouse"+Math.random();
-        touch.x = (event.clientX-this.tractCanvas.getBoundingClientRect().left)/UI.width*600;
-        touch.y = (event.clientY-this.tractCanvas.getBoundingClientRect().top)/UI.width*600;
-        touch.index = TractUI.getIndex(touch.x, touch.y);
-        touch.diameter = TractUI.getDiameter(touch.x, touch.y);
-        UI.mouseTouch = touch;
-        UI.touchesWithMouse.push(touch);
-        TractUI.handleTouches();
-    },    
-
-    moveMouse : function(event)
-    {
-        if (!this.showControls) return;
-        var touch = UI.mouseTouch;
-        if (!touch.alive) return;
-        touch.x = (event.clientX-this.tractCanvas.getBoundingClientRect().left)/UI.width*600;
-        touch.y = (event.clientY-this.tractCanvas.getBoundingClientRect().top)/UI.width*600;
-        touch.index = TractUI.getIndex(touch.x, touch.y);
-        touch.diameter = TractUI.getDiameter(touch.x, touch.y); 
-        TractUI.handleTouches();
-    },
-    
-    endMouse : function(event)
-    {
-        UI.mouseDown = false;
-        var touch = UI.mouseTouch;
-        if (!touch.alive) return;
-        touch.alive = false;
-        touch.endTime = time; 
-        TractUI.handleTouches();
-    },
-    
-    updateTouches : function()
-    {
-        var fricativeAttackTime = 0.1;
-        for (var j=UI.touchesWithMouse.length-1; j >=0; j--)
-        {
-            var touch = UI.touchesWithMouse[j];
-            if (!(touch.alive) && (time > touch.endTime + 1))
-            {
-                UI.touchesWithMouse.splice(j,1);
-            }
-            else if (touch.alive) 
-            {
-                touch.fricative_intensity = clamp((time-touch.startTime)/fricativeAttackTime, 0, 1);
-            }
-            else
-            {
-                touch.fricative_intensity = clamp(1-(time-touch.endTime)/fricativeAttackTime, 0, 1);
-            }
-        }
-        this.tract.fricativeTouches = this.touchesWithMouse;
-    }
 }
 
 var TractUI =
@@ -273,7 +123,7 @@ var TractUI =
     fillColour : 'pink',
     lineColour : '#C070C6',
     
-    init : function(tract, glottis, {showControls, showAnatomyLabels, ctx, canvas, backCtx })
+    init : function(tract, glottis, {showAnatomyLabels, ctx, canvas, backCtx })
     {
         this.ctx = ctx;
         this.canvas = canvas;
@@ -282,7 +132,7 @@ var TractUI =
         this.tongue = tract.tongue;
         this.glottis = glottis;
 
-        this.drawBackground(showControls, showAnatomyLabels);
+        this.drawBackground(showAnatomyLabels);
     },
     
     moveTo : function(i,d) 
@@ -335,22 +185,8 @@ var TractUI =
         this.ctx.arc(this.originX-r*Math.cos(angle), this.originY-r*Math.sin(angle), radius, 0, 2*Math.PI);
         this.ctx.fill();
     },
-        
-    getIndex : function(x,y)
-    {
-        var xx = x-this.originX; var yy = y-this.originY;
-        var angle = Math.atan2(yy, xx);
-        while (angle> 0) angle -= 2*Math.PI;
-        angle = (Math.PI + angle - this.angleOffset) / (this.angleScale * Math.PI);
-        return angle * (this.tract.lipStart - 1);
-    },
-    getDiameter : function(x,y)
-    {
-        var xx = x-this.originX; var yy = y-this.originY;
-        return (this.radius-Math.sqrt(xx*xx + yy*yy))/this.scale;
-    },
-    
-    draw : function({showControls, showAnatomyLabels})
+
+    draw : function({showAnatomyLabels})
     {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.lineCap = 'round';        
@@ -467,7 +303,7 @@ var TractUI =
         // this.drawPositions();
     },
     
-    drawBackground : function(showControls, showAnatomyLabels)
+    drawBackground : function(showAnatomyLabels)
     {
         this.ctx = this.backCtx;
         
@@ -645,50 +481,5 @@ var TractUI =
         
         this.ctx.fillStyle = "orchid";
      },
-
-    handleConstrictions: function() {
-        for (var j=0; j<UI.touchesWithMouse.length; j++) 
-        {
-            var touch = UI.touchesWithMouse[j];
-            if (!touch.alive) continue;            
-            var x = touch.x;
-            var y = touch.y;
-            var index = TractUI.getIndex(x,y);
-            var diameter = TractUI.getDiameter(x,y);
-        
-            temp.a = index;
-            temp.b = diameter;
-            if (diameter < -0.85-this.noseOffset) continue;
-            diameter -= 0.3;
-            if (diameter<0) diameter = 0;         
-
-            // radial deformer's width is 10 at start (and less than 25), 5 at end (and more than 32), interpolation inbetween
-            const width = clamp(10-5*(index-25)/(this.tract.tipStart-25), 5, 10);
-
-
-            if (!(index >= 2 && index < this.tract.n && y<this.canvas.height && diameter < 3)) continue;
-            const intIndex = Math.round(index);
-            for (var i=-Math.ceil(width)-1; i<width+1; i++) 
-            {   
-                if (intIndex+i<0 || intIndex+i>=this.tract.n) continue;
-                var relpos = (intIndex+i) - index;
-                relpos = Math.abs(relpos)-0.5;
-                var shrink;
-                if (relpos <= 0) shrink = 0;
-                else if (relpos > width) shrink = 1;
-                else shrink = 0.5*(1-Math.cos(Math.PI * relpos / width));
-                if (diameter < this.tract.targetDiameter[intIndex+i])
-                {
-                    this.tract.targetDiameter[intIndex+i] = diameter + (this.tract.targetDiameter[intIndex+i]-diameter)*shrink;
-                }
-            }
-        }
-    },
-    
-    handleTouches : function()
-    {
-        this.tract.setRestDiameter(); // still needed for constrictions
-        this.handleConstrictions();
-    },
 
 }
